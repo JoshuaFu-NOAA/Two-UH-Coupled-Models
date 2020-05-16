@@ -1,0 +1,21 @@
+#!/bin/sh
+# 
+# This script convert ECHAM4 SST files from
+# CRAY pure binary format to netCDF
+#
+# Uwe Schulzweida, MPI, July 1999
+#
+#
+RES=106
+#
+INI4POOL=/export/home/m214003/DATA/INI/CRAY/ECHAM4/T${RES}/
+INI4POOLNC=/export/home/m214003/DATA/INI/NC/ECHAM4/T${RES}/
+#
+../bin/year2ync ${INI4POOL}year${RES}m.new_s year${RES}m.nc
+ncdump year${RES}m.nc > year${RES}m.nc.cdl
+echo "copy to ${INI4POOLNC}"
+cp year${RES}m.nc ${INI4POOLNC}
+rm year${RES}m.nc
+#
+exit
+

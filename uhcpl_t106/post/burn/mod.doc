@@ -1,0 +1,202 @@
+# ======================================================================
+# Several changes have been applied to the afterburner.             !!!!
+# Please read /pf/k/k204004/burn/mod.doc for more information       !!!!
+# ======================================================================
+# Documentation for mod21/42/63/106 on /pf/k/k204004/burn/mod.doc
+#                                                              29-Oct-95
+# ======================================================================
+# User Support: Arno Hellbach (040) 41173 / 363       DKRZ Support Group
+# ======================================================================
+
+
+ 0. News:
+    The "afterburner" is one program now, which is able to process
+    model data represented in T21, T42, T63 and T106 resolution in
+    gridpoint and spectral space. There is no limit for the vertical
+    resolution of model data (was 19 levels) except memory limits of
+    the job classes.
+    The old names "mod21" etc. are kept by linking those names to the
+    program "after". "after" is self defining, which means you can call
+    "after" instead of "mod21" or "mod42" or "mod63" or "mod106".
+    ECHAM4 output files can be processed as well as ECHAM1/2/3 output
+    files.
+    Last but not least the "after"-program is available on
+    NIESEL, REGEN and BLITZ (Sun-Department-Server) and 
+    NEPTUN (Convex) in the same version and at the same
+    location as on the CRAYs.
+
+ 1. The program "after" reads, unpacks, transforms and selects data
+    from T-model GRIB files, and writes them either unformatted or 
+    in GRIB form for further processing (i.e. plotting).
+    Additionally, pressure or height interpolation is optional
+    (refer to parameter description of "UNITSEL").
+
+ 2. Usage: /pf/k/k204004/burn/after  gribfile resultfile
+    or:    /pf/k/k204004/burn/mod21  gribfile resultfile
+    or:    /pf/k/k204004/burn/mod42  gribfile resultfile
+    or:    /pf/k/k204004/burn/mod63  gribfile resultfile
+    or:    /pf/k/k204004/burn/mod106 gribfile resultfile
+           ^                         ^        ^
+           ^                         ^        Selected fields
+           ^                         path/filename of GRIB data
+           Executable program
+
+    These programs read selection parameters as namelist from
+    stdin  (standard input) and write some informative messages to
+    stdout (standard output). Abort messages can be found on
+    stderr (standard error).
+
+    Use the UNIX redirection "< namelistfile" to read the
+    namelist from file.
+
+ 3. Namelist: &SELECT  TYPE = , CODE  = , LEVEL = , MULTI = ,
+              MEAN = , GRIB = , HEAD7 = , TIMESEL = , UNITSEL =    &END
+
+  default ->  TYPE  =  0 : Hybrid             level spectral coefficients
+              TYPE  = 10 : Hybrid             level fourier  coefficients
+              TYPE  = 11 : Hybrid             level zonal mean sections
+              TYPE  = 20 : Hybrid             level gauss grids
+              TYPE  = 30 : Pressure or Height level gauss grids
+              TYPE  = 40 : Pressure or Height level fourier  coefficients
+              TYPE  = 41 : Pressure or Height level zonal mean sections
+              TYPE  = 50 : Pressure or Height level spectral coefficients
+              TYPE  = 60 : Pressure or Height level fourier  coefficients
+              TYPE  = 61 : Pressure or Height level zonal mean sections
+              TYPE  = 70 : Pressure or Height level gauss grids
+
+              CODE  =  1 - 255 ECMWF field codes (130=Temperature, etc.)
+                     256 - 258 : internal
+                           259 : sqrt(u*u + v*v)
+                           260 : largescale + convective rain
+                           261 : total top    radiation
+                           262 : total bottom radiation
+                           263 : net heat  flux
+                           264 : net water flux
+
+              LEVEL =: Up to NN + 1 hybrid, pressure or height levels
+                       (depending on TYPE and UNITSEL !!!)
+                       NN depends on model type (either 19, 25 or 35)
+
+  default ->  MULTI =  0 : Process only one input file
+              MULTI =  n : Process "n" input files - each containing
+                           one month. Put only the name of the first
+                           input file on the command line. All subsequent
+                           files are expected to be in the same directory.
+                           The filenames must follow the syntax
+                           experiment_YYMM, where YY denotes the year
+                           and MM the month.
+
+  default ->  DAYIN = 30 : Day step for incrementing input file names
+              DAYIN = nn : Day step is nn days
+                           Used only in conjunction with MULTI != 0.
+                           Since ECHAM4 output files follow the
+                           naming convention
+                              experiment_YYMM.DD
+                           DAYIN is the time step in days between
+                           subsequent input files for MULTI != 0.
+
+  default ->  MEAN  =  0 : Write out all terms
+              MEAN  =  1 : Compute and write monthly mean fields
+                           !!! Only for TYPE >= 20 !!!
+              MEAN  =  2 : Compute and write monthly deviations.
+                           !!! Only for TYPE = 20 or TYPE = 30 !!!
+              MEAN  =  3 : Combination of MEAN=1 and MEAN=2.
+                           Each mean field is followed by a deviation
+                           field with an identical header record.
+                           !!! Only for TYPE = 20 or TYPE = 30 !!!
+
+              GRIB  =  1 : The resultfile is also in GRIB form!
+                           CURENTLY THIS OPTION WORKS WITH
+                           TYPES 20 ,30, 50 or 70 ONLY !!!
+  default ->  GRIB  =  0 : The resultfile is an unblocked binary data file
+                           with the following structure:
+                           The whole file consists of pairs of
+                           header record and data record.
+                           The header record is an integer array
+                           of 8 elements.
+
+  default ->  HEAD7 =  0 : This parameter is for your personal use.
+                           All header records take this value to
+                           their 7th. element.
+              head(1) = ECMWF field code
+              head(2) = level (1-19) or pressure in [Pa]
+              head(3) = date  [yymmdd]  (yymm00 for monthly means)
+              head(4) = time  [hh]      (    -1 for monthly means)
+              head(5) = 1. dimension of data array
+              head(6) = 2. dimension of data array
+              head(7) = may be set with the parameter HEAD7
+              head(8) = experiment number (extracted from filename)
+
+  default ->TIMESEL = -1 : The resultfile contains the same timesteps
+                           per day as the input gribfile.
+                           Multiple values may be specified, i.e.
+                              TIMESEL = 0, 12, 18
+                           Note that only hours existing in the input
+                           file can be specified.
+                           (No time interpolation or average is done)
+
+  default ->UNITSEL =  0 : Pressure interpolation (TYPE >= 30)
+                           or hybrid level output (TYPE <= 20).
+                           Unlike before, pressure levels less than 100 Pa
+                           can be processed (except 0 and negative values).
+            UNITSEL =  1 : Height   interpolation 
+                           Values specified for LEVEL are interpreted
+                           as height-meters       (TYPE >= 30).
+                           (Maximum LEVEL: 65535 m)
+            UNITSEL =  2 : Height   interpolation 
+                           Values specified for LEVEL are interpreted
+                           as height-kilometers   (TYPE >= 30).
+                           (Maximum LEVEL: 65   km)
+
+ 4. Example for reading the resultfile on UNICOS 8.0.? (GRIB = 0):
+
+          assign -s unblocked -a resultfile u:10
+
+          INTEGER HEAD(8)
+          REAL    FIELD(64,32)     ! dimensions for T21 grids
+          READ (10,ERR=888,END=999) HEAD
+          READ (10,ERR=888,END=999) FIELD
+          ....
+      888 STOP 'I/O ERR'
+      999 STOP 'EOF'
+          ....
+
+ 5. Troubleshooting:
+    The program writes unblocked data (without any record information).
+    Be sure to assign the 'unblocked' attribute to the file, before
+    reading it with the FORTRAN <READ>- or CRAY FORTRAN <BUFFER IN>-
+    statement. Using <fread> you don't need an assign.
+
+    Check your namelist, especially for invalid codes, types and levels.
+
+    If all else fails rerun the program with an additional parameter
+    called "Debug" e.g.:
+
+    mod21 <my_namelist >myoutput modelfile resultfile Debug
+
+    then make the output available with "chmod" and
+    call or mail the support group at DKRZ.
+
+ 6. Possible combinations of TYPE, CODE and MEAN
+
+    TYPE =  0 : CODE = 130  temperature           MEAN = 0
+                       131  u-velocity
+                       132  v-velocity
+                       133  specific humidity
+                       138  vorticity
+                       148  streamfunction
+                       149  velocity potential
+                       152  LnPs
+                       155  divergence
+
+    TYPE = 10: CODE = (same as TYPE 0)            MEAN = 0
+
+    TYPE = 11: CODE = (same as TYPE 0)            MEAN = 0
+
+    TYPE > 11: CODE = (all codes)                 MEAN = 0/1
+
+    Vorticity, divergence, streamfunction and velocity potential
+    need special treatment in the vertical transformation.
+    They are not available as types 30, 40 and 41.
+    If you select one of these combinations, type is automatically
+    switched to the equivalent types 70, 60 and 61.

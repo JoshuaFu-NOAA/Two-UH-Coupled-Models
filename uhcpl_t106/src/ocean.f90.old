@@ -1,0 +1,67 @@
+!c====this code is designed to call the IOM(as a
+!c==subroutines, then accumulate the inputs for the
+!c==ocean model
+!c== nrday:days in a month;lwtime=>save fort.51
+!c== imday:total days in a specific month
+        subroutine ocean(lwtime,sstfu,taux,tauy,&
+         sflux,qsol,wind,ia,ja)
+
+        USE mo_landsea,  ONLY: aland, bzone, itopo, iland,&
+                              agx, agy, sgx, sgy
+
+	parameter(io=180,jo=61)
+!c-------------------------------------------------------
+!c  atmospheric grids are on the Gaussian grids
+!c-------------------------------------------------------
+!c  oceanic grids are on the 2x1 system
+!c========================================================
+!	integer aland,bzone	
+!	common /csbc1/aland(ia,ja),itopo(io,jo),&
+!           iland(ia,ja),agx(ia),agy(ja),sgx(io),sgy(jo)
+	common /scouple/tx(io,jo),ty(io,jo),wfu(io,jo),qsl(io,jo),&
+           flux(io,jo)
+
+	common /fudate/runday,dta,dto,day1,tseg,numcpl,&
+           numatm,numocn
+	dimension sst(io,jo),sstfu(ia,ja),&
+          taux(ia,ja),tauy(ia,ja),sflux(ia,ja),qsol(ia,ja),&
+          ssto(io,jo),wind(ia,ja)
+        logical lwtime
+
+
+!c=== prepare the oceanic inputs (taux,tauy,qsol,sflux,)
+!c=== from atmospheric model
+!c*********************************************************
+!c    BECAUSE THE ATMOSPHERIC MODEL STARTS FIRST!!!!!
+!c*********************************************************
+!c--get ocean grid inputs from atmospheric model
+
+	call winda(taux,tauy,qsol,sflux,wind,ia,ja) 
+
+	do i=1,io
+	 do j=1,jo
+	 ssto(i,j)=0.
+	 end do
+	end do
+
+!c--run IOM one day
+	do loop=1,numocn
+
+	call iom(sst,lwtime,loop) 
+
+!c---do the accumulate
+	do i=1,io
+	  do j=1,jo
+	  ssto(i,j)=ssto(i,j)+sst(i,j)/float(numocn)
+	  end do
+	end do
+!c----end
+	end do
+!c========================================================
+!c     get sstfu after one-day ocean integration
+!c-------------------------------------------------------
+	call getsst(sstfu,ssto,ia,ja)
+!c-------------------------------------------------------
+        return	
+	end subroutine ocean
+

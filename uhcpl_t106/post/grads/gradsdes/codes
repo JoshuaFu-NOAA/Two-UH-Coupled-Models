@@ -1,0 +1,149 @@
+   4   1  PRECIP     0.0   8.64E07  total precipitation  [mm/d]
+  19   1  pme        0.0   8.64E07  precip-evap  [mm/d]
+  86   1  TOPO       0.0   1.0      AVERAGE HEIGHTS [m]
+  87   1  VARH       0.0   1.0      VARIANCES OF AVERAGE HEIGHTS [m]
+  88   1  SLOPE      0.0   1.0      SLOPE
+  89   1  URBAN      0.0   1.0      URBANIZATION
+  90   1  EWOV       0.0   1.E-6    E-W orographic var [km`a2`n]
+  91   1  NSOV       0.0   1.E-6    N-S orographic var [km`a2`n]
+  92   1  NWOV       0.0   1.E-6    NW-SE orographic var [km`a2`n]
+  93   1  NEOV       0.0   1.E-6    NE-SW orographic var [km`a2`n]
+  99   1  ALAKE      0.0 100.0      lake fraction [%]
+ 129   1  GEOSP      0.0 0.10197162 surface geopotential (orography)  [m]
+ 130  19  STP     -273.15  1.0      temperature  [`ao`nC]
+ 131  19  U          0.0   1.0      u-velocity   [m/s]
+ 132  19  V          0.0   1.0      v-velocity   [m/s]
+ 133  19  SQ         0.0   1.E3     specific humidity    [g/kg]
+ 134   1  APS        0.0   0.01     Surface pressure     [hPa]
+ 135  19  code135    0.0   1.0      Vertical velocity    [Pa/s]
+ 138  19  SVO        0.0   1.0      vorticity            [1/s]
+ 139   1  TS      -273.15  1.0      surface temperature  [`ao`nC]
+ 140   1  WS         0.0 100.0      soil wetness      [cm]
+ 141   1  SN         0.0 100.0      snow depth        [cm]
+ 142   1  APRL       0.0   8.64E07  large scale precipitation  [mm/d]
+ 143   1  APRC       0.0   8.64E07  convective  precipitation  [mm/d]
+ 144   1  APRS       0.0   8.64E07  snow fall                  [m/s]
+ 145   1  VDIS       0.0   1.0      boundary layer dissipation  [W/m`a2`n]
+ 146   1  AHFS       0.0   1.0      surface sensible heat flux  [W/m`a2`n]
+ 147   1  AHFL       0.0   1.0      surface latent heat flux    [W/m`a2`n]
+ 148  19  code148    0.0   1.0      streamfunction
+ 149  19  code149    0.0   1.0E-6   velocity potential [km`a2`n/s]
+ 151   1  code151    0.0   0.01     mean sea level pressure  [hPa]
+ 152   1  LSP        0.0   1.0      log surface pressure
+ 153  19  SX         0.0   1.0      liquid water content [kg/kg]
+ 155  19  SD         0.0   1.0      divergence
+ 156  19  code156    0.0   0.1      geopotential height  [dm]
+ 157  19  code157    0.0 100.0      relative humidity  [%]
+ 158   1  code157    0.0   1.0      tendency of surface pressure  [Pa/s]
+ 159   1  USTAR3     0.0   1.0      ustar`a3`n  [m`a3`n/s`a3`n]
+ 160   1  RUNOFF     0.0   8.64E07  surface runoff  [mm/d]
+ 161  19  ALWC       0.0   1.0      liquid water content  [kg/kg]
+ 162  19  ACLC       0.0 100.0      cloud cover       [%]
+ 163   1  ACLCV      0.0 100.0      total cloud cover [%]
+ 164   1  ACLCOV     0.0 100.0      total cloud cover [%]
+ 165   1  U10        0.0   1.0      10m u-velocity  [m/s]
+ 166   1  V10        0.0   1.0      10m v-velocity  [m/s]
+ 167   1  TEMP2   -273.15  1.0      2m temperature  [`ao`nC]
+ 168   1  DEW2    -273.15  1.0      2m dew point temperature  [`ao`nC]
+ 169   1  TSURF   -273.15  1.0      surface temperature       [`ao`nC] 
+ 170   1  TD      -273.15  1.0      deep soil temperature     [`ao`nC]
+ 171   1  WIND10     0.0   1.0      10m windspeed       [m/s]
+ 172   1  SLM        0.0   1.0      land sea mask     [0: sea, 1: land]
+ 173   1  AZ0        0.0   1.0      surface roughness length  [m]
+ 174   1  ALB        0.0 100.0      surface background albedo [%]
+ 175   1  ALBEDO     0.0 100.0      surface albedo            [%]
+ 176   1  SRADS      0.0   1.0      net surface solar radiation    [W/m`a2`n]
+ 177   1  TRADS      0.0   1.0      net surface thermal radiation  [W/m`a2`n]
+ 178   1  SRAD0      0.0   1.0      net top solar radiation        [W/m`a2`n]
+ 179   1  TRAD0      0.0   1.0      top thermal radiation (OLR)    [W/m`a2`n]
+ 180   1  USTR       0.0 1000.0     surface u-stress      [mN/m`a2`n]
+ 181   1  VSTR       0.0 1000.0     surface v-stress      [mN/m`a2`n]
+ 182   1  EVAP       0.0   8.64E07  surface evaporation   [mm/d]
+ 183   1  TDCL    -273.15  1.0      soil temperature  [`ao`nC]
+ 185   1  SRAFS      0.0   1.0      net surf. solar radiation   (clear sky) [W/m`a2`n]
+ 186   1  TRAFS      0.0   1.0      net surf. thermal radiation (clear sky) [W/m`a2`n]
+ 187   1  SRAF0      0.0   1.0      net top solar radiation     (clear sky) [W/m`a2`n]
+ 188   1  TRAF0      0.0   1.0      net top thermal radiation   (clear sky) [W/m`a2`n]
+ 189   1  SCLFS      0.0   1.0      surface solar cloud forcing             [W/m`a2`n]
+ 190   1  TCLFS      0.0   1.0      surface thermal cloud forcing           [W/m`a2`n]
+ 191   1  SCLF0      0.0   1.0      top solar cloud forcing                 [W/m`a2`n]
+ 192   1  TCLF0      0.0   1.0      top thermal cloud forcing               [W/m`a2`n]
+ 193   1  WL         0.0   1.0      skin reservoir content        [m]
+ 194   1  WLM1       0.0   1.0      skin reservoir content of plants  [m]
+ 195   1  USTRGW     0.0 1000.0     u-gravity wave stress     [mN/m`a2`n]
+ 196   1  VSTRGW     0.0 1000.0     v-gravity wave stress     [mN/m`a2`n]
+ 197   1  VDISGW     0.0   1.0      gravity wave dissipation  [W/m`a2`n]
+ 198   1  VGRAT      0.0 100.0      vegetation ratio [%]
+ 199   1  VAROR      0.0   1.E-6    orographic variance [km`a2`n]
+ 200   1  VLT        0.0   1.0      leaf area index 
+ 201   1  T2MAX   -273.15  1.0      maximum 2m-temperature   [`ao`nC]
+ 202   1  T2MIN   -273.15  1.0      minimum 2m-temperature   [`ao`nC]
+ 203   1  SRAD0U     0.0   1.0      top solar radiation upward       [W/m`a2`n]
+ 204   1  SRADSU     0.0   1.0      surface solar radiation upward   [W/m`a2`n]
+ 205   1  TRADSU     0.0   1.0      surface thermal radiation upward [W/m`a2`n]
+ 206   1  TSN     -273.15  1.0      snow temperature [`ao`nC]
+ 207   1  TD3     -273.15  1.0      soil temperature 3 [`ao`nC]
+ 208   1  TD4     -273.15  1.0      soil temperature 4 [`ao`nC]
+ 209   1  TD5     -273.15  1.0      soil temperature 5 [`ao`nC]
+ 210   1  SEAICE     0.0 100.0      sea ice cover  [%]
+ 211   1  SICED      0.0   1.0      sea ice depth  [m]
+ 212   1  FOREST     0.0 100.0      vegetation type [%]
+ 213   1  TEFF    -273.15  1.0      (effective) sea-ice skin temperature [`ao`nC]
+ 214   1  TSMAX   -273.15  1.0      maximum surface temperature   [`ao`nC]
+ 215   1  TSMIN   -273.15  1.0      minimum surface temperature   [`ao`nC]
+ 216   1  WIMAX      0.0   1.0      maximum 10m-wind speed        [m/s]
+ 217   1  TOPMAX     0.0   1.0      maximum convective cloud tops [m]
+ 218   1  SNMEL      0.0   1.0      snow melt                     [m/s]
+ 219   1  RUNTOC     0.0   1.0      surface runoff into ocean
+ 220   1  TSLIN      0.0   1.0      land: residual surface heat budget [W/m`a2`n] 
+ 221   1  DSNAC      0.0   8.64E07  snow depth change             [mm/d]
+ 222  19  ALWCAC     0.0   1.0      liquid water content          [kg/kg]
+ 223  19  ACLCAC     0.0 100.0      cloud cover                   [%]
+ 224  19  TKE        0.0   1.0      turbulent kinetic energy
+ 225  19  TKEM1      0.0   1.0      turbulent kinetic energy (t-1)
+ 226   1  FAO        0.0   1.0      FAO data set (soil data flags)        [0...5.]
+ 227   1  RGCGN      0.0   1.0      heat capacity of soil 
+ 228   1  SODIF      0.0   1.0      soil diffusivity 
+ 229   1  WSMX       0.0 100.0      field capacity of soil [cm]
+ 230   1  QVI        0.0   1.0      vertically integrated specific humidity  [kg/m`a2`n]
+ 231   1  ALWCVI     0.0   1.0      vertically integrated liquid water cont. [kg/m`a2`n]
+ 232   1  GLAC       0.0   1.0      glacier mask      [0: no, 1: yes]
+ 233   1  RUNLND     0.0   1.0      surface runoff not running into ocean
+ 235  19  XT(1)      0.0   1.0      tracer 
+ 236  19  OZON       0.0 4.79E-14   Ozon [ppbv]
+ 240  19  H2O2       0.0  1.0E-12   H`b2`nO`b2`n [*10`a12`n]
+ 243  19  STOZON     0.0 4.79E-14   strat. Ozon [ppbv]
+ 255  19  XT(15)     0.0   1.0      tracer 
+ 259  19  code259    0.0   1.0      windspeed (sqrt(u`a2`n+v`a2`n))
+ 260   1  precip     0.0   8.64E07  total precipitation  [mm/d]
+ 261   1  code261    0.0   1.0      total top radiation
+ 262   1  code262    0.0   1.0      total surface radiation
+ 263   1  code263    0.0   1.0      net surface heat flux
+ 264   1  code264    0.0   1.0      total surface water
+ 265   1  code265    0.0   1.0      qstat top solar cloud forcing (178-224)  (method I)
+ 266   1  code266    0.0   1.0      top thermal cloud forcing (179-225)      (   "    )
+ 267   1  code267    0.0   1.0      top total cloud forcing (178+179-224-225)(   "    )
+ 268   1  code268    0.0   1.0      atmospheric solar radiation
+ 269   1  code269    0.0   1.0      atmospheric thermal radiation
+ 270   1  code270    0.0   1.0      total atmospheric radiation
+ 271   1  code271    0.0   1.0      surface runoff (only echam1 !!)
+ 272  19  code272    0.0   1.0      mass stream function
+ 273   1  code273    0.0   1.0      dps/dlambda  zonal derivative of surface pressure
+ 274   1  code274    0.0   1.0      dps/dphi  meridional derivative of surface pressure
+ 275   1  code275    0.0   1.0      precipitation-evaporation
+ 364   1  code364    0.0   1.0      top solar cloud forcing      (2)
+ 365   1  code365    0.0   1.0      top longwave cloud forci     (2)
+ 366   1  code366    0.0   1.0      top net cloud forcing        (2)
+ 370   1  code370    0.0   1.0      surf. solar cloud forcing    (2)
+ 371   1  code371    0.0   1.0      surf. longwave cloud forcing (2)
+ 372   1  code372    0.0   1.0      surf. net cloud forcing      (2)
+ 373   1  code373    0.0   1.0      atm. solar cloud forcing     (2)
+ 374   1  code374    0.0   1.0      atm. longwave cloud forcing  (2)
+ 375   1  code375    0.0   1.0      atm. net cloud forcing       (2)
+ 376   1  code376    0.0   1.0      surf. net radiation     (clear sky)
+ 377   1  code377    0.0   1.0      atm. solar radiation    (clear sky)
+ 378   1  code378    0.0   1.0      atm. longwave radiation (clear sky)
+ 379   1  code379    0.0   1.0      atm. net radiation      (clear sky)
+ 380   1  code380    0.0 100.0      planetary albedo -(203/(178-203))*100. [%]
+ 381   1  code381    0.0 100.0      planetary albedo (cl. sky) -(105/(103-105))*100.[%]
+ 382   1  code382    0.0 100.0      surf. albedo  -(204/(176-204))*100. [%]

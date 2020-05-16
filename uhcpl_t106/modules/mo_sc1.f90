@@ -1,0 +1,27 @@
+MODULE mo_sc1
+
+! used only in tree scan1sl
+
+  REAL, TARGET, ALLOCATABLE :: vo(:,:)
+  REAL, TARGET, ALLOCATABLE :: d(:,:)
+  REAL, TARGET, ALLOCATABLE :: t(:,:)
+  REAL, TARGET, ALLOCATABLE :: alps(:)
+  REAL, TARGET, ALLOCATABLE :: u(:,:)
+  REAL, TARGET, ALLOCATABLE :: v(:,:)
+  REAL, TARGET, ALLOCATABLE :: vol(:,:)
+  REAL, TARGET, ALLOCATABLE :: vom(:,:)
+  REAL, TARGET, ALLOCATABLE :: rh(:,:)
+  REAL, TARGET, ALLOCATABLE :: qe(:,:)
+  REAL, TARGET, ALLOCATABLE :: xe(:,:)
+  REAL, TARGET, ALLOCATABLE :: xte(:,:,:)
+  REAL, TARGET, ALLOCATABLE :: te(:,:)
+  REAL, TARGET, ALLOCATABLE :: alpse(:)
+  REAL, TARGET, ALLOCATABLE :: u0(:)
+  REAL, TARGET, ALLOCATABLE :: du0(:)
+  REAL, TARGET, ALLOCATABLE :: ul(:)
+  REAL, TARGET, ALLOCATABLE :: alnpr(:,:)
+  REAL, TARGET, ALLOCATABLE :: alpha(:,:)
+  REAL, TARGET, ALLOCATABLE :: vervel(:,:)
+
+END MODULE mo_sc1
+

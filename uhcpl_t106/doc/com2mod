@@ -1,0 +1,43 @@
+  old       new
+common    module
+ name      name
+
+combl1    mo_block1g           - variables for block1 of grib code
+combs2    mo_block2s           - variables for block2 for spherical harmonics
+combuf    m_buffer_setup
+comcon    mo_constants         - basic universal constants  and derived constants.
+comcor    mo_global_buffer     - pointers for global buffers
+comctl    mo_control           - control variables for model housekeeping.
+comcumf   mo_cumulus_flux      - parameters for cumulus massflux scheme
+comdia    mo_diagnostics       - quantities related to global physical
+comdiaz   mo_diagnostics_zonal - zonal means of quantities related
+comdoc    mo_doctor
+comdsw    mo_forecast_switches - switches related to the dynamics
+comfft    mo_fft               - quantities needed for the fast *fourier
+comgau    mo_gaussgrid         - quantities related to the gaussian grid.
+comhdi    mo_hdiff             - coefficients for horizontal diffusion.
+comhis    mo_filename          - quantities needed for file names etc.
+comhyb    mo_hyb               - loop indices and surface-pressure independent
+comiot    mo_io_tables         - common block containing input/output tables.
+comph1    mo_physc1            - constants to communicate between the main program
+comph2    mo_physc2            - constants to communicate between the main program
+compos    mo_post              - control variables for postprocessing
+compsw    mo_param_switches    - switches related to the parameterisations of
+comrad1   mo_rad1              - spectral distribution of aerosols and ozone.
+comrad2   mo_rad2              - constants internal to the radiation subroutines.
+comrsw    mo_rad_switches      - switches related to the radiation scheme.
+comscb    mo_scanb             - quantities related to split scan
+comsds    mo_start_dataset     - start/restart block.
+comsim    mo_semi_impl         - quantities needed for the semi-implicit scheme
+comsta    mo_stat              - arrays and parameters for statistics.
+comsta2   mo_stat2             - variables for zonal diagnostics
+comstaz   mo_stat_zonal        - zonal means for global statistics (dynamics)
+comtrc    mo_tracer            - tracer variables
+comtru    mo_truncation        - quantities related to the spectral truncation.
+comveg    mo_vegetation        - variables for computation of evapotranspiration
+param     mo_parameters        - parameters controlling array sizes
+yomdif    mo_diff              - contains parameter needed by
+
+
+
+Uwe Schulzweida, 10/98

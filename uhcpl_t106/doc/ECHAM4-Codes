@@ -1,0 +1,209 @@
+ 
+ -------------------------------------------------------------------
+ Documentation of ECHAM-4 output codes 
+               (U. Schlese, 6-Sep-96)
+ File on CRAY-YMP/C90(sea): /pf/k/k204003/doc/codes.4
+ -------------------------------------------------------------------
+ type: g=grid, s=spectral, m=mean over output interval
+
+ All variables with an internal name can be requested as model output.
+ 
+ All prognostic variables except optional tracers are written out by default 
+ (see description of namelists POSTCTL and TRACTL).
+ Codes of prognostic variables: 130, 133, 138, 152, 153, 155 and 235 ... 255
+
+ All variables without an internal name are derived variables and are
+ computed by the "afterburner" sofware package "after" (valid for all model
+ resolutions).
+ The afterburner also computes grid point versions of spectral variables.
+ (see documentation  /pf/k/k204004/burn/mod.doc)
+
+ Note: To compute multi level derived variables and for interpolation
+       to pressure levels the afterburner needs all default prognostic
+       variables and code 129 (GEOSP). Changing of namelist POSTCTL
+       is therefore not recommended (output of code 129 is internally forced).
+------------------------------------------------------------------------
+
+ code|levels|internal| type | variable
+     |      | name   |      |
+     |      |        |      |
+
+ 129    1    GEOSP      g    surface geopotential (orography)  [m**2/s**2]
+ 130   19    STP      s      temperature          [K]  (see notes)
+ 131   19               g    u-velocity           [m/s]
+ 132   19               g    v-velocity           [m/s]
+ 133   19    Q          g    specific humidity    [kg/kg] 
+ 134    1    APS        g    Surface pressure     [Pa]
+ 135   19               g    Vertical velocity    [Pa/s]
+ 138   19    SVO      s      vorticity            [1/s]
+ 139    1    TS         g    surface temperature  [K] (see also code 169)
+ 140    1    WS         g    soil wetness         [m]
+ 141    1    SN         g    snow depth           [m]
+ 142    1    APRL       g m  large scale precipitation   [m/s]
+ 143    1    APRC       g m  convective  precipitation   [m/s]
+ 144    1    APRS       g m  snow fall                   [m/s]
+ 145    1    VDIS       g m  boundary layer dissipation  [W/m**2]
+ 146    1    AHFS       g m  surface sensible heat flux  [W/m**2]
+ 147    1    AHFL       g m  surface latent heat flux    [W/m**2]
+ 148   19               g    streamfunction              [m**2/s]
+ 149   19               g    velocity potential          [m**2/s]
+ 
+ 151    1               g    mean sea level pressure     [Pa]
+ 152    1    STP(20)  s      log surface pressure
+ 153   19    X          g    liquid water content        [kg/kg] 
+ 
+ 155   19    SD       s      divergence                  [1/s]
+ 156   19               g    geopotential height         [gpm]
+
+ 158
+ 159    1    USTAR3     g m  ustar**3          [m**3/s**3]
+ 160    1    RUNOFF     g m  surface runoff    [m/s] 
+
+ 162   19    ACLC       g    cloud cover       [fract.]    (see also 223)
+ 163    1    ACLCV      g    total cloud cover [fract.]    (see also 164)
+ 164    1    ACLCOV     g m  total cloud cover [fract.]
+ 165    1    U10        g m  10m u-velocity    [m/s]
+ 166    1    V10        g m  10m v-velocity    [m/s]
+ 167    1    TEMP2      g m  2m temperature    [K]
+ 168    1    DEW2       g m  2m dew point temperature  [K]
+ 169    1    TSURF      g m  surface temperature       [K]  (see also 139)
+ 170    1    TD         g    deep soil temperature     [K]
+ 171    1    WIND10     g m  10m windspeed             [m/s]
+ 172    1    SLM        g    land sea mask             [0.: sea, 1.: land]
+ 173    1    AZ0        g    surface roughness length  [m]
+ 174    1    ALB        g    surface background albedo [fract.]
+ 175    1    ALBEDO     g    surface albedo            [fract.]
+ 176    1    SRADS      g m  net surface solar radiation    [W/m**2]
+ 177    1    TRADS      g m  net surface thermal radiation  [W/m**2]
+ 178    1    SRAD0      g m  net top solar radiation        [W/m**2]
+ 179    1    TRAD0      g m  top thermal radiation (OLR)    [W/m**2]
+ 180    1    USTR       g m  surface u-stress               [Pa]
+ 181    1    VSTR       g m  surface v-stress               [Pa]
+ 182    1    EVAP       g m  surface evaporation            [m/s]
+ 183    1    TDCL       g    soil temperature    [K] (see description below)
+  
+ 185    1    SRAFS      g m  net surf. solar radiation   (clear sky) [W/m**2]
+ 186    1    TRAFS      g m  net surf. thermal radiation (clear sky) [W/m**2]
+ 187    1    SRAF0      g m  net top solar radiation     (clear sky) [W/m**2]
+ 188    1    TRAF0      g m  net top thermal radiation   (clear sky) [W/m**2]
+ 189    1    SCLFS      g m  surface solar cloud forcing             [W/m**2]
+ 190    1    TCLFS      g m  surface thermal cloud forcing           [W/m**2]
+ 191    1    SCLF0      g m  top solar cloud forcing                 [W/m**2]
+ 192    1    TCLF0      g m  top thermal cloud forcing               [W/m**2]
+         Note: codes 185, 187, 189 and 191 are only compiled if LSOLC=T 
+              in namelist RADCTL which is the default
+
+ 193    1    WL         g    skin reservoir content        [m]
+ 194    1    WLM1       g    skin reservoir content (t-1)  [m]
+ 195    1    USTRGW     g m  u-gravity wave stress         [Pa]
+ 196    1    VSTRGW     g m  v-gravity wave stress         [Pa]
+ 197    1    VDISGW     g m  gravity wave dissipation      [W/m**2]
+ 198    1    VGRAT      g    vegetation ratio
+ 199    1    VAROR      g    orographic variance (for surface runoff)
+ 200    1    VLT        g    leaf area index 
+ 201    1    T2MAX      g    maximum 2m-temperature           [K]
+ 202    1    T2MIN      g    minimum 2m-temperature           [K]
+ 203    1    SRAD0U     g m  top solar radiation upward       [W/m**2]
+ 204    1    SRADSU     g m  surface solar radiation upward   [W/m**2]
+ 205    1    TRADSU     g m  surface thermal radiation upward [W/m**2]
+ 206    1    TSN        g    snow temperature [K] (see description below)
+ 207    1    TD3        g    soil temperature [K]           "
+ 208    1    TD4        g              "      [K]           "
+ 209    1    TD5        g              "      [K]           "
+ 210    1    SEAICE     g    sea ice cover    [fract.]
+ 211    1    SICED      g    sea ice depth    [m]
+ 212    1    FOREST     g    vegetation type
+ 213    1    TEFF       g m  (effective) sea-ice skin temperature [K]
+ 214    1    TSMAX      g    maximum surface temperature          [K]
+ 215    1    TSMIN      g    minimum surface temperature          [K]
+ 216    1    WIMAX      g    maximum 10m-wind speed               [m/s]
+ 217    1    TOPMAX     g    maximum height of convective cloud tops [Pa]
+ 218    1    SNMEL      g m  snow melt                            [m/s]
+ 219    1    RUNTOC     g    surface runoff into ocean
+ 220    1    TSLIN      g m     land: residual surface heat budget [W/m**2] 
+                             sea-ice: conductive heat flux         [W/m**2]
+ 221    1    DSNAC      g m  snow depth change                     [m/s]
+
+ 223   19    ACLCAC     g m  cloud cover                           [fract.]
+ 224   19    TKE        g    turbulent kinetic energy
+ 225   19    TKEM1      g    turbulent kinetic energy (t-1)
+ 226    1    FAO        g    FAO data set (soil data flags)        [0...5.]
+ 227    1    RGCGN      g    heat capacity of soil 
+ 228    1    SODIF      g    soil diffusivity 
+ 229    1    WSMX       g    field capacity of soil 
+ 230    1    QVI        g m  vertically integrated specific humidity  [kg/m**2]
+ 231    1    ALWCVI     g m  vertically integrated liquid water cont. [kg/m**2]
+ 232    1    GLAC       g    glacier mask         [0.: no, 1.: yes]
+ 233    1    RUNLND     g    surface runoff not running into ocean
+
+ 235   19    XT(1)      g    optional tracer variable
+  .           .                      "
+  .           .                      "
+ 255   19    XT(15)     g            "
+
+ 259   19               g    windspeed (sqrt(u**2+v**2))
+ 260    1               g m  total precipitation (142+143)
+ 261    1               g m  total top radiation (178+179)
+ 262    1               g m  total surface radiation (176+177)
+ 263    1               g m  net surface heat flux (146+147+176+177-220-C*218)
+                              C=Lf*RhoH2O             Lf: Latent heat of fusion 
+                                                  RhoH2O: Density of water
+ 264    1               g m  total surface water (142+143+182-160-221)
+
+ Attention: 
+         Over land ice (SN > 9.5 m or GLAC=1) the snow melt is not calculated
+         i.e. the snow will gradually accumulate. In long term integrations with
+         coupled models a suitable ice flow to the ocean (glacier calving) will
+         have to be introduced for maintaining the water budget.
+ ------------------------------------------------------------------------------
+
+
+
+       Predefined code numbers of variables which are not calculated
+       by the afterburner:
+
+ 157   19               g    relative humidity  [fract.]
+ 158    1               g    tendency of surface pressure  [Pa/s]
+
+ -------------------------------------------------------------------------------
+  Description of soil temperatures:
+  |---------|------------------------------------
+  | TS      |  surface temperature  (=interface to atmosphere)
+  |---------|------------------------------------
+  | TSN     |  snow temperature
+  |---------|------------------------------------
+  | TD3     |
+  |---------|
+  | TD4     |
+  |---------|   soil temperatures
+  | TD5     |
+  |---------|
+  | TD      |
+  |---------|
+  | TDCL    |
+  |---------|-------------------------------------
+  Note: The surface temperature TS is always the interface temperature
+        to atmosphere even in snow covered areas!
+ ----------------------------------------------------------------------------
+
+ Namelist  POSTCTL   (control of prognostic variables write out) ---
+           =======
+
+  Name        Type         Purpose                              Default
+  ----        ----         -------                              -------
+
+  LPPSPE .... LOGICAL .... True for write out of all prognostic  TRUE
+                           variables except optional tracers
+  LPPD ...... LOGICAL .... True for write out of divergence (SD) TRUE
+  LPPVO ..... LOGICAL .... Idem for vorticity (SVO) ............ TRUE
+  LPPT ...... LOGICAL .... Idem for temperature  (STP) ......... TRUE
+  LPPP ...... LOGICAL .... Idem for surface pressure (STP(20)) . TRUE
+  LPPQ ...... LOGICAL .... Idem for specific humidity  (Q) ..... TRUE
+  LPPX ...... LOGICAL .... Idem for liquid water content  (X) .. TRUE
+
+ The output of tracer variables is controlled by namelist TRACTL:
+                                                          ======
+  LPPXT ..... LOGICAL .... True for write out of tracers  ...... 21*FALSE
+              ARRAY
+
+file: rainbow:/pf/k/k204003/doc/codes.4

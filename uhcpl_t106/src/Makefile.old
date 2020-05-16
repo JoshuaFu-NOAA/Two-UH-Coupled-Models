@@ -1,0 +1,531 @@
+# Generated automatically by fu.pl
+ 
+PROG =	../bin/echam4_strat
+
+SRCS =	aerdis.f90 aerosol.f90 auxhyb.f90 bandij.f90 basdy.f90 basdz.f90 \
+	basiy.f90 conteq.f90 control.f90 cuadjtq.f90 cuasc.f90 cubase.f90 \
+	cubasmc.f90 cubxdr.f90 cubydr.f90 cubzdr.f90 cuddraf.f90 cudlfs.f90 \
+	cudtdq.f90 cududv.f90 cuentr.f90 cuflx.f90 cuini.f90 cumastr.f90 \
+	datim.f90 drive.f90 dyn.f90 ewd.f90 extra.f90 extx.f90 extys.f90 \
+	extyv.f90 fftd.f90 ffti.f90 fixer.f90 g2spos.f90 geopot.f90 \
+	getsst.f90 gpc.f90 grdini.f90 grdxy.f90 gwdrag.f90 hdiff.f90 \
+	helmo.f90 herxin.f90 heryin.f90 herzin.f90 hrintp.f90 hrvint.f90 \
+	ice.f90 ichlen2.f90 inhysi.f90 inictl.f90 inidoc.f90 iniphy.f90 \
+	inipost.f90 inisoil.f90 init_decomposition.f90 init_memory.f90 \
+	initialize.f90 ioinitial.f90 iom.f90 iorestart.f90 kdpfnd.f90 \
+	labrun.f90 lagyin.f90 lcbas.f90 lcdbas.f90 legtri.f90 limdx.f90 \
+	limdy.f90 limdz.f90 ltd.f90 lti.f90 lw.f90 lwb.f90 lwc.f90 lwtt.f90 \
+	lwu.f90 lwv.f90 lwvb.f90 lwvd.f90 lwvn.f90 m_cond.f90 m_cond5.f90 \
+	m_cucall.f90 m_radheat.f90 m_solang.f90 m_surf.f90 m_vdiff.f90 \
+	make_ensembles.f90 master.f90 maxwind.f90 ocean.f90 orbit.f90 \
+	orbit2.f90 ozone.f90 pgrad.f90 physc.f90 postatd.f90 postatp.f90 \
+	postrad.f90 posts1.f90 posts2.f90 prerad.f90 pres.f90 presf.f90 \
+	prestat.f90 qmassa.f90 qmassd.f90 radint.f90 radlsw.f90 readfld.f90 \
+	restart.f90 restart_initial.f90 restart_ocn.f90 restart_setupo.f90 \
+	s2gphi.f90 s2gvel.f90 savehis3.f90 scan1sl.f90 scan2.f90 sccd.f90 \
+	scctp.f90 scm0.f90 setdyn.f90 setphys.f90 setrad.f90 settv.f90 \
+	setupo.f90 setzeroi.f90 setzerox.f90 si1.f90 si2.f90 slt2.f90 \
+	sltb1.f90 sltfill.f90 sltini.f90 sphdep.f90 sstint.f90 start.f90 \
+	statd.f90 statp.f90 statpz.f90 stepon.f90 suaerx.f90 subjob.f90 \
+	sudif.f90 sufix.f90 suradi.f90 suslt.f90 susw.f90 sw.f90 sw1s.f90 \
+	sw2s.f90 swde.f90 swr.f90 swtt.f90 swu.f90 sym1.f90 sym2.f90 tf1.f90 \
+	tf2.f90 trajmp.f90 trjgl.f90 trjmps.f90 vdplim.f90 vrtdep.f90 \
+	vrtmap.f90 winda.f90
+
+OBJS := $(SRCS:.f90=.o)
+
+MOBJS =	$(MODULES)/m_alloc_mods.o $(MODULES)/mo_aerosols.o $(MODULES)/mo_alai.o \
+	$(MODULES)/mo_avgrat.o $(MODULES)/mo_base_types.o \
+	$(MODULES)/mo_buffer_fft.o $(MODULES)/mo_call_trans.o \
+	$(MODULES)/mo_cfc.o $(MODULES)/mo_column.o $(MODULES)/mo_constants.o \
+	$(MODULES)/mo_control.o $(MODULES)/mo_convect_tables.o \
+	$(MODULES)/mo_couple.o $(MODULES)/mo_cumulus_flux.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_diag_tendency.o \
+	$(MODULES)/mo_diagnostics.o $(MODULES)/mo_diagnostics_zonal.o \
+	$(MODULES)/mo_diff.o $(MODULES)/mo_doctor.o $(MODULES)/mo_dsst.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_f.o $(MODULES)/mo_fft.o \
+	$(MODULES)/mo_field.o $(MODULES)/mo_filename.o \
+	$(MODULES)/mo_forecast_switches.o $(MODULES)/mo_gaussgrid.o \
+	$(MODULES)/mo_global_op.o $(MODULES)/mo_grib.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_hdiff.o $(MODULES)/mo_hyb.o $(MODULES)/mo_io.o \
+	$(MODULES)/mo_io_tables.o $(MODULES)/mo_julian.o $(MODULES)/mo_kind.o \
+	$(MODULES)/mo_landsea.o $(MODULES)/mo_legendre.o \
+	$(MODULES)/mo_linked_list.o $(MODULES)/mo_longwave.o \
+	$(MODULES)/mo_machine.o $(MODULES)/mo_memory_base.o \
+	$(MODULES)/mo_memory_f.o $(MODULES)/mo_memory_g1a.o \
+	$(MODULES)/mo_memory_g1b.o $(MODULES)/mo_memory_g2a.o \
+	$(MODULES)/mo_memory_g2b.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_memory_g3b.o $(MODULES)/mo_memory_gl.o \
+	$(MODULES)/mo_memory_ls.o $(MODULES)/mo_memory_sp.o \
+	$(MODULES)/mo_midatm.o $(MODULES)/mo_mpi.o $(MODULES)/mo_netCDF.o \
+	$(MODULES)/mo_nmi.o $(MODULES)/mo_nudging.o \
+	$(MODULES)/mo_nudging_buffer.o $(MODULES)/mo_ozone.o \
+	$(MODULES)/mo_parallel_slt.o $(MODULES)/mo_param_switches.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_physc1.o \
+	$(MODULES)/mo_physc2.o $(MODULES)/mo_post.o $(MODULES)/mo_rad1.o \
+	$(MODULES)/mo_rad2.o $(MODULES)/mo_rad_switches.o \
+	$(MODULES)/mo_radiation.o $(MODULES)/mo_radint.o $(MODULES)/mo_sc1.o \
+	$(MODULES)/mo_scan_buffer.o $(MODULES)/mo_scanb.o \
+	$(MODULES)/mo_semi_impl.o $(MODULES)/mo_shortwave.o \
+	$(MODULES)/mo_skintem.o $(MODULES)/mo_slt.o $(MODULES)/mo_soil_impl.o \
+	$(MODULES)/mo_sst.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_stat_global.o $(MODULES)/mo_stat_zonal.o \
+	$(MODULES)/mo_test_trans.o $(MODULES)/mo_time_control.o \
+	$(MODULES)/mo_timeint.o $(MODULES)/mo_tmp_buffer.o \
+	$(MODULES)/mo_tracer.o $(MODULES)/mo_transpose.o \
+	$(MODULES)/mo_truncation.o $(MODULES)/mo_vegetation.o \
+	$(MODULES)/mo_year.o
+
+all: $(PROG)
+
+$(PROG): $(OBJS) $(MOBJS) ../lib/libsupport.a
+	$(F90) $(LDFLAGS) -o $@ $(OBJS) $(MOBJS) $(LIBS)
+
+clean:
+	rm -f $(PROG) $(OBJS) *.mod
+
+.SUFFIXES: $(SUFFIXES) .f90
+
+%.o: %.f90
+	$(F90) $(F90FLAGS) -c $<
+
+auxhyb.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_hyb.o
+bandij.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_grid.o
+basdy.o: $(MODULES)/mo_grid.o
+basiy.o: $(MODULES)/mo_grid.o
+conteq.o: $(MODULES)/mo_control.o $(MODULES)/mo_hyb.o
+control.o: $(MODULES)/mo_alai.o $(MODULES)/mo_avgrat.o \
+	$(MODULES)/mo_control.o $(MODULES)/mo_couple.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_diag_tendency.o \
+	$(MODULES)/mo_dsst.o $(MODULES)/mo_gaussgrid.o \
+	$(MODULES)/mo_legendre.o $(MODULES)/mo_machine.o \
+	$(MODULES)/mo_memory_g3b.o $(MODULES)/mo_midatm.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_nmi.o $(MODULES)/mo_nudging.o $(MODULES)/mo_sst.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tracer.o \
+	$(MODULES)/mo_transpose.o
+cuadjtq.o: $(MODULES)/mo_constants.o $(MODULES)/mo_convect_tables.o
+cuasc.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_cumulus_flux.o $(MODULES)/mo_machine.o \
+	$(MODULES)/mo_start_dataset.o
+cubase.o: $(MODULES)/mo_constants.o $(MODULES)/mo_cumulus_flux.o
+cubasmc.o: $(MODULES)/mo_constants.o $(MODULES)/mo_cumulus_flux.o
+cubydr.o: $(MODULES)/mo_grid.o $(MODULES)/mo_slt.o
+cuddraf.o: $(MODULES)/mo_constants.o $(MODULES)/mo_cumulus_flux.o
+cudlfs.o: $(MODULES)/mo_constants.o $(MODULES)/mo_cumulus_flux.o
+cudtdq.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_dsst.o $(MODULES)/mo_tracer.o
+cududv.o: $(MODULES)/mo_constants.o
+cuentr.o: $(MODULES)/mo_constants.o
+cuflx.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_physc2.o $(MODULES)/mo_start_dataset.o
+cuini.o: $(MODULES)/mo_constants.o
+cumastr.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_cumulus_flux.o $(MODULES)/mo_start_dataset.o
+drive.o: $(MODULES)/mo_constants.o $(MODULES)/mo_grid.o $(MODULES)/mo_hyb.o \
+	$(MODULES)/mo_memory_gl.o $(MODULES)/mo_start_dataset.o
+dyn.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_diag_tendency.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_global_op.o \
+	$(MODULES)/mo_hyb.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_memory_g3b.o $(MODULES)/mo_memory_gl.o \
+	$(MODULES)/mo_scan_buffer.o
+ewd.o: $(MODULES)/mo_buffer_fft.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_truncation.o
+extx.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o
+extys.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_mpi.o $(MODULES)/mo_transpose.o
+extyv.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_mpi.o $(MODULES)/mo_transpose.o
+fftd.o: $(MODULES)/mo_buffer_fft.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_fft.o
+ffti.o: $(MODULES)/mo_buffer_fft.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_fft.o
+fixer.o: $(MODULES)/mo_grid.o
+g2spos.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o
+geopot.o: $(MODULES)/mo_control.o $(MODULES)/mo_hyb.o
+getsst.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_landsea.o
+gpc.o: $(MODULES)/mo_alai.o $(MODULES)/mo_avgrat.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_landsea.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_nudging.o $(MODULES)/mo_sst.o \
+	$(MODULES)/mo_start_dataset.o
+grdini.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o
+grdxy.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_grid.o
+gwdrag.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_diagnostics_zonal.o $(MODULES)/mo_gaussgrid.o \
+	$(MODULES)/mo_param_switches.o $(MODULES)/mo_start_dataset.o
+hdiff.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_diag_tendency.o \
+	$(MODULES)/mo_diff.o $(MODULES)/mo_hdiff.o $(MODULES)/mo_memory_sp.o \
+	$(MODULES)/mo_midatm.o $(MODULES)/mo_semi_impl.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_truncation.o
+helmo.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_hyb.o \
+	$(MODULES)/mo_tmp_buffer.o
+herxin.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_slt.o
+heryin.o: $(MODULES)/mo_grid.o $(MODULES)/mo_slt.o
+herzin.o: $(MODULES)/mo_grid.o
+hrintp.o: $(MODULES)/mo_grid.o $(MODULES)/mo_slt.o
+hrvint.o: $(MODULES)/mo_grid.o $(MODULES)/mo_slt.o
+ice.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_memory_g3a.o $(MODULES)/mo_memory_g3b.o \
+	$(MODULES)/mo_physc2.o $(MODULES)/mo_tmp_buffer.o
+inhysi.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_hyb.o $(MODULES)/mo_semi_impl.o \
+	$(MODULES)/mo_start_dataset.o
+inictl.o: $(MODULES)/m_alloc_mods.o $(MODULES)/mo_column.o \
+	$(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_doctor.o $(MODULES)/mo_exception.o $(MODULES)/mo_io.o \
+	$(MODULES)/mo_io_tables.o $(MODULES)/mo_machine.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_nudging.o $(MODULES)/mo_parameters.o \
+	$(MODULES)/mo_post.o $(MODULES)/mo_start_dataset.o \
+	$(INCLUDE)/runctl.inc $(INCLUDE)/sdsctl.inc
+inidoc.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_mpi.o
+iniphy.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_cumulus_flux.o $(MODULES)/mo_diagnostics.o \
+	$(MODULES)/mo_hyb.o $(MODULES)/mo_parameters.o $(MODULES)/mo_physc2.o \
+	$(MODULES)/mo_vegetation.o
+inipost.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_doctor.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_filename.o $(MODULES)/mo_gaussgrid.o \
+	$(MODULES)/mo_grib.o $(MODULES)/mo_hdiff.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_post.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_year.o \
+	$(INCLUDE)/postctl.inc
+inisoil.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_rad_switches.o $(MODULES)/mo_sst.o $(MODULES)/mo_year.o
+init_decomposition.o: $(MODULES)/mo_column.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_transpose.o
+init_memory.o: $(MODULES)/mo_buffer_fft.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_memory_base.o $(MODULES)/mo_memory_f.o \
+	$(MODULES)/mo_memory_g1a.o $(MODULES)/mo_memory_g1b.o \
+	$(MODULES)/mo_memory_g2a.o $(MODULES)/mo_memory_g2b.o \
+	$(MODULES)/mo_memory_g3a.o $(MODULES)/mo_memory_g3b.o \
+	$(MODULES)/mo_memory_gl.o $(MODULES)/mo_memory_ls.o \
+	$(MODULES)/mo_memory_sp.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tracer.o
+initialize.o: $(MODULES)/mo_io.o $(MODULES)/mo_parallel_slt.o \
+	$(MODULES)/mo_tracer.o
+ioinitial.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_hyb.o $(MODULES)/mo_io.o \
+	$(MODULES)/mo_io_tables.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_memory_gl.o $(MODULES)/mo_memory_sp.o \
+	$(MODULES)/mo_mpi.o $(MODULES)/mo_netCDF.o $(MODULES)/mo_physc2.o \
+	$(MODULES)/mo_post.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_tracer.o $(MODULES)/mo_transpose.o
+iom.o: $(MODULES)/mo_control.o $(MODULES)/mo_doctor.o $(INCLUDE)/com1.inc \
+	$(INCLUDE)/pram1.inc
+iorestart.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_io.o \
+	$(MODULES)/mo_memory_g1a.o $(MODULES)/mo_memory_gl.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tracer.o
+kdpfnd.o: $(MODULES)/mo_grid.o
+labrun.o: $(MODULES)/mo_control.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_filename.o \
+	$(MODULES)/mo_forecast_switches.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_param_switches.o $(MODULES)/mo_rad_switches.o \
+	$(MODULES)/mo_semi_impl.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_tracer.o $(MODULES)/mo_truncation.o \
+	$(MODULES)/mo_year.o
+lagyin.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_grid.o $(MODULES)/mo_slt.o
+limdx.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_grid.o
+limdy.o: $(MODULES)/mo_grid.o $(MODULES)/mo_slt.o
+limdz.o: $(MODULES)/mo_grid.o
+ltd.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_legendre.o \
+	$(MODULES)/mo_memory_f.o $(MODULES)/mo_memory_ls.o
+lti.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_legendre.o \
+	$(MODULES)/mo_memory_f.o $(MODULES)/mo_memory_ls.o
+lw.o: $(MODULES)/mo_longwave.o $(MODULES)/mo_radiation.o
+lwb.o: $(MODULES)/mo_longwave.o
+lwc.o: $(MODULES)/mo_radiation.o $(MODULES)/mo_radint.o
+lwtt.o: $(MODULES)/mo_longwave.o
+lwu.o: $(MODULES)/mo_aerosols.o $(MODULES)/mo_cfc.o $(MODULES)/mo_constants.o \
+	$(MODULES)/mo_longwave.o $(MODULES)/mo_radiation.o \
+	$(MODULES)/mo_radint.o
+lwv.o: $(MODULES)/mo_longwave.o
+lwvb.o: $(MODULES)/mo_longwave.o $(MODULES)/mo_radint.o
+lwvd.o: $(MODULES)/mo_longwave.o
+lwvn.o: $(MODULES)/mo_longwave.o
+m_cond.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_convect_tables.o $(MODULES)/mo_diagnostics_zonal.o \
+	$(MODULES)/mo_dsst.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_machine.o \
+	$(MODULES)/mo_start_dataset.o
+m_cond5.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_convect_tables.o $(MODULES)/mo_diagnostics_zonal.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_machine.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tmp_buffer.o
+m_cucall.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_convect_tables.o $(MODULES)/mo_start_dataset.o
+m_radheat.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_couple.o $(MODULES)/mo_diag_tendency.o \
+	$(MODULES)/mo_diagnostics_zonal.o $(MODULES)/mo_dsst.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_physc1.o \
+	$(MODULES)/mo_rad_switches.o $(MODULES)/mo_radint.o
+m_solang.o: $(MODULES)/mo_gaussgrid.o $(MODULES)/mo_physc1.o \
+	$(MODULES)/mo_rad_switches.o
+m_surf.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_diagnostics_zonal.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_param_switches.o \
+	$(MODULES)/mo_physc2.o $(MODULES)/mo_radint.o \
+	$(MODULES)/mo_soil_impl.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_vegetation.o
+m_vdiff.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_convect_tables.o $(MODULES)/mo_couple.o \
+	$(MODULES)/mo_diagnostics_zonal.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_dsst.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_param_switches.o \
+	$(MODULES)/mo_physc2.o $(MODULES)/mo_radint.o \
+	$(MODULES)/mo_soil_impl.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_tracer.o $(MODULES)/mo_vegetation.o
+make_ensembles.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_doctor.o $(MODULES)/mo_io.o $(MODULES)/mo_kind.o \
+	$(MODULES)/mo_memory_g1a.o $(MODULES)/mo_memory_g2a.o \
+	$(MODULES)/mo_memory_g3a.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_transpose.o
+master.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_mpi.o
+maxwind.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_global_op.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_semi_impl.o \
+	$(MODULES)/mo_start_dataset.o
+ocean.o: $(MODULES)/mo_couple.o $(MODULES)/mo_landsea.o
+orbit2.o: $(MODULES)/mo_constants.o $(MODULES)/mo_parameters.o
+pgrad.o: $(MODULES)/mo_control.o $(MODULES)/mo_hyb.o
+physc.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_diag_tendency.o \
+	$(MODULES)/mo_diagnostics.o $(MODULES)/mo_diagnostics_zonal.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_field.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_global_op.o \
+	$(MODULES)/mo_hyb.o $(MODULES)/mo_memory_g1a.o \
+	$(MODULES)/mo_memory_g2a.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_memory_g3b.o $(MODULES)/mo_midatm.o \
+	$(MODULES)/mo_param_switches.o $(MODULES)/mo_rad_switches.o \
+	$(MODULES)/mo_sc1.o $(MODULES)/mo_skintem.o $(MODULES)/mo_soil_impl.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tmp_buffer.o \
+	$(MODULES)/mo_tracer.o
+postatd.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_doctor.o $(MODULES)/mo_forecast_switches.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_parameters.o \
+	$(MODULES)/mo_semi_impl.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_stat_global.o $(MODULES)/mo_stat_zonal.o
+postatp.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_diagnostics.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_param_switches.o $(MODULES)/mo_parameters.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_stat_global.o \
+	$(MODULES)/mo_stat_zonal.o $(MODULES)/mo_tmp_buffer.o \
+	$(MODULES)/mo_year.o
+postrad.o: $(MODULES)/mo_control.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_rad_switches.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tmp_buffer.o
+posts1.o: $(MODULES)/mo_control.o $(MODULES)/mo_doctor.o $(MODULES)/mo_io.o \
+	$(MODULES)/mo_io_tables.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_start_dataset.o
+posts2.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_doctor.o $(MODULES)/mo_filename.o $(MODULES)/mo_grib.o \
+	$(MODULES)/mo_io.o $(MODULES)/mo_mpi.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_year.o
+prerad.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_physc1.o \
+	$(MODULES)/mo_rad1.o $(MODULES)/mo_rad_switches.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tmp_buffer.o \
+	$(MODULES)/mo_year.o
+pres.o: $(MODULES)/mo_control.o $(MODULES)/mo_hyb.o
+presf.o: $(MODULES)/mo_control.o
+prestat.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_diagnostics.o $(MODULES)/mo_forecast_switches.o \
+	$(MODULES)/mo_param_switches.o $(MODULES)/mo_parameters.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_stat_global.o \
+	$(MODULES)/mo_stat_zonal.o $(MODULES)/mo_tmp_buffer.o
+qmassa.o: $(MODULES)/mo_global_op.o $(MODULES)/mo_grid.o
+qmassd.o: $(MODULES)/mo_global_op.o $(MODULES)/mo_grid.o
+radint.o: $(MODULES)/mo_aerosols.o $(MODULES)/mo_constants.o \
+	$(MODULES)/mo_control.o $(MODULES)/mo_convect_tables.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_memory_g1a.o \
+	$(MODULES)/mo_memory_g3a.o $(MODULES)/mo_memory_g3b.o \
+	$(MODULES)/mo_memory_gl.o $(MODULES)/mo_midatm.o \
+	$(MODULES)/mo_ozone.o $(MODULES)/mo_physc1.o $(MODULES)/mo_physc2.o \
+	$(MODULES)/mo_rad1.o $(MODULES)/mo_rad2.o \
+	$(MODULES)/mo_rad_switches.o $(MODULES)/mo_radint.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_timeint.o \
+	$(MODULES)/mo_tmp_buffer.o $(MODULES)/mo_year.o
+radlsw.o: $(MODULES)/mo_cfc.o $(MODULES)/mo_constants.o \
+	$(MODULES)/mo_control.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_memory_g3b.o $(MODULES)/mo_radiation.o \
+	$(MODULES)/mo_radint.o
+readfld.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_doctor.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_field.o $(MODULES)/mo_io.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_test_trans.o \
+	$(MODULES)/mo_transpose.o
+restart.o: $(MODULES)/mo_control.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_parameters.o \
+	$(MODULES)/mo_start_dataset.o
+restart_initial.o: $(MODULES)/mo_couple.o
+restart_ocn.o: $(MODULES)/mo_couple.o
+restart_setupo.o: $(MODULES)/mo_couple.o
+s2gphi.o: $(MODULES)/mo_grid.o
+s2gvel.o: $(MODULES)/mo_grid.o
+savehis3.o: $(MODULES)/mo_control.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_filename.o \
+	$(MODULES)/mo_start_dataset.o
+scan1sl.o: $(MODULES)/mo_call_trans.o $(MODULES)/mo_column.o \
+	$(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_diag_tendency.o \
+	$(MODULES)/mo_diagnostics.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_field.o $(MODULES)/mo_gaussgrid.o \
+	$(MODULES)/mo_global_op.o $(MODULES)/mo_grib.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_hyb.o $(MODULES)/mo_io_tables.o \
+	$(MODULES)/mo_legendre.o $(MODULES)/mo_memory_g1a.o \
+	$(MODULES)/mo_memory_g1b.o $(MODULES)/mo_memory_g2a.o \
+	$(MODULES)/mo_memory_g2b.o $(MODULES)/mo_memory_g3b.o \
+	$(MODULES)/mo_memory_gl.o $(MODULES)/mo_memory_ls.o \
+	$(MODULES)/mo_mpi.o $(MODULES)/mo_parallel_slt.o \
+	$(MODULES)/mo_physc1.o $(MODULES)/mo_sc1.o \
+	$(MODULES)/mo_scan_buffer.o $(MODULES)/mo_sst.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_stat_global.o \
+	$(MODULES)/mo_test_trans.o $(MODULES)/mo_tmp_buffer.o \
+	$(MODULES)/mo_tracer.o $(MODULES)/mo_transpose.o $(MODULES)/mo_year.o
+scan2.o: $(MODULES)/mo_call_trans.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_start_dataset.o
+sccd.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_diag_tendency.o $(MODULES)/mo_memory_sp.o \
+	$(MODULES)/mo_tmp_buffer.o
+scctp.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_diag_tendency.o $(MODULES)/mo_hyb.o \
+	$(MODULES)/mo_memory_sp.o
+setdyn.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_doctor.o $(MODULES)/mo_exception.o $(MODULES)/mo_fft.o \
+	$(MODULES)/mo_forecast_switches.o $(MODULES)/mo_gaussgrid.o \
+	$(MODULES)/mo_hdiff.o $(MODULES)/mo_hyb.o $(MODULES)/mo_midatm.o \
+	$(MODULES)/mo_mpi.o $(MODULES)/mo_param_switches.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_semi_impl.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tmp_buffer.o \
+	$(MODULES)/mo_truncation.o $(INCLUDE)/dynctl.inc
+setphys.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_convect_tables.o $(MODULES)/mo_cumulus_flux.o \
+	$(MODULES)/mo_diagnostics.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_param_switches.o $(MODULES)/mo_parameters.o \
+	$(MODULES)/mo_physc1.o $(MODULES)/mo_start_dataset.o \
+	$(INCLUDE)/physctl.inc
+setrad.o: $(MODULES)/mo_aerosols.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_doctor.o $(MODULES)/mo_hyb.o $(MODULES)/mo_longwave.o \
+	$(MODULES)/mo_mpi.o $(MODULES)/mo_param_switches.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_rad2.o \
+	$(MODULES)/mo_rad_switches.o $(MODULES)/mo_tmp_buffer.o \
+	$(INCLUDE)/radctl.inc
+settv.o: $(MODULES)/mo_doctor.o
+setupo.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_landsea.o $(INCLUDE)/com1.inc \
+	$(INCLUDE)/pram1.inc
+setzeroi.o: $(MODULES)/mo_control.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_io_tables.o $(MODULES)/mo_machine.o \
+	$(MODULES)/mo_memory_g3b.o $(MODULES)/mo_parameters.o \
+	$(MODULES)/mo_post.o $(MODULES)/mo_start_dataset.o
+setzerox.o: $(MODULES)/mo_control.o $(MODULES)/mo_io_tables.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_post.o \
+	$(MODULES)/mo_start_dataset.o
+si1.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_decomposition.o $(MODULES)/mo_diag_tendency.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_memory_g1a.o \
+	$(MODULES)/mo_sc1.o $(MODULES)/mo_semi_impl.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tmp_buffer.o \
+	$(MODULES)/mo_tracer.o
+si2.o: $(MODULES)/mo_buffer_fft.o $(MODULES)/mo_constants.o \
+	$(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_diag_tendency.o $(MODULES)/mo_gaussgrid.o \
+	$(MODULES)/mo_semi_impl.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_truncation.o
+slt2.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_grid.o $(MODULES)/mo_memory_g1a.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_scan_buffer.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_tracer.o
+sltb1.o: $(MODULES)/mo_grid.o $(MODULES)/mo_slt.o
+sltfill.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_memory_g1a.o $(MODULES)/mo_scan_buffer.o \
+	$(MODULES)/mo_tracer.o
+sltini.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_mpi.o $(MODULES)/mo_parallel_slt.o $(MODULES)/mo_slt.o \
+	$(MODULES)/mo_transpose.o
+sphdep.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_slt.o
+sstint.o: $(MODULES)/mo_couple.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_landsea.o
+start.o: $(MODULES)/mo_control.o $(MODULES)/mo_doctor.o $(MODULES)/mo_mpi.o \
+	$(MODULES)/mo_start_dataset.o
+statd.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_memory_g3b.o $(MODULES)/mo_memory_gl.o \
+	$(MODULES)/mo_scan_buffer.o $(MODULES)/mo_stat_global.o \
+	$(MODULES)/mo_stat_zonal.o
+statp.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_gaussgrid.o $(MODULES)/mo_memory_g3a.o \
+	$(MODULES)/mo_parameters.o $(MODULES)/mo_physc2.o \
+	$(MODULES)/mo_stat_zonal.o
+statpz.o: $(MODULES)/mo_control.o $(MODULES)/mo_diagnostics.o \
+	$(MODULES)/mo_diagnostics_zonal.o $(MODULES)/mo_parameters.o
+stepon.o: $(MODULES)/mo_constants.o $(MODULES)/mo_control.o \
+	$(MODULES)/mo_couple.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_diag_tendency.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_dsst.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_filename.o $(MODULES)/mo_grib.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_hdiff.o $(MODULES)/mo_hyb.o $(MODULES)/mo_memory_sp.o \
+	$(MODULES)/mo_midatm.o $(MODULES)/mo_mpi.o $(MODULES)/mo_nmi.o \
+	$(MODULES)/mo_nudging.o $(MODULES)/mo_parallel_slt.o \
+	$(MODULES)/mo_start_dataset.o $(MODULES)/mo_time_control.o \
+	$(MODULES)/mo_timeint.o
+suaerx.o: $(MODULES)/mo_aerosols.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o
+subjob.o: $(MODULES)/mo_control.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_filename.o $(MODULES)/mo_start_dataset.o
+sudif.o: $(MODULES)/mo_control.o $(MODULES)/mo_diff.o \
+	$(MODULES)/mo_parameters.o
+sufix.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_exception.o \
+	$(MODULES)/mo_grid.o $(MODULES)/mo_mpi.o $(MODULES)/mo_parameters.o \
+	$(MODULES)/mo_tracer.o
+suradi.o: $(MODULES)/mo_control.o $(MODULES)/mo_rad_switches.o \
+	$(MODULES)/mo_radint.o
+suslt.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_grid.o \
+	$(MODULES)/mo_tracer.o
+susw.o: $(MODULES)/mo_constants.o $(MODULES)/mo_shortwave.o
+sw1s.o: $(MODULES)/mo_constants.o $(MODULES)/mo_shortwave.o
+sw2s.o: $(MODULES)/mo_radiation.o $(MODULES)/mo_shortwave.o
+swr.o: $(MODULES)/mo_aerosols.o $(MODULES)/mo_constants.o \
+	$(MODULES)/mo_radiation.o $(MODULES)/mo_radint.o
+swtt.o: $(MODULES)/mo_shortwave.o
+swu.o: $(MODULES)/mo_radiation.o $(MODULES)/mo_shortwave.o
+sym1.o: $(MODULES)/mo_buffer_fft.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_memory_f.o
+sym2.o: $(MODULES)/mo_buffer_fft.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_memory_f.o
+tf1.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_diag_tendency.o $(MODULES)/mo_memory_g1a.o \
+	$(MODULES)/mo_memory_g1b.o $(MODULES)/mo_memory_g2a.o \
+	$(MODULES)/mo_memory_g2b.o $(MODULES)/mo_memory_gl.o \
+	$(MODULES)/mo_sc1.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_tracer.o
+tf2.o: $(MODULES)/mo_control.o $(MODULES)/mo_decomposition.o \
+	$(MODULES)/mo_diag_tendency.o $(MODULES)/mo_memory_g1a.o \
+	$(MODULES)/mo_memory_g2a.o $(MODULES)/mo_memory_gl.o \
+	$(MODULES)/mo_scan_buffer.o $(MODULES)/mo_start_dataset.o \
+	$(MODULES)/mo_tracer.o
+trajmp.o: $(MODULES)/mo_grid.o
+trjgl.o: $(MODULES)/mo_decomposition.o $(MODULES)/mo_doctor.o \
+	$(MODULES)/mo_exception.o $(MODULES)/mo_grid.o
+trjmps.o: $(MODULES)/mo_grid.o
+vdplim.o: $(MODULES)/mo_grid.o
+vrtdep.o: $(MODULES)/mo_grid.o
+vrtmap.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_exception.o
+winda.o: $(MODULES)/mo_doctor.o $(MODULES)/mo_landsea.o

@@ -1,0 +1,4 @@
+#PBS -N fu_job2 
+#PBS -l ncpus=1,mem=3gb
+#PBS -l walltime=24:00:00
+#

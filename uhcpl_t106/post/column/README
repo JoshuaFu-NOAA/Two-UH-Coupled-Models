@@ -1,0 +1,39 @@
+
+  Postprocessing Tools
+
+CONTENT
+
+  Fortran 90 Programs
+
+    post_1d.f90              Visualization tool based on gnuplot.
+    chvct.f90                Change vertical coordinates in forcing file
+    chua.f90                 convert forcing file:  unformatted <-> formatted
+
+  Fortran 90 modules
+
+    mo_system.f90          define system routines
+                           (external or module subroutines)
+    mo_1d_io.f90           Read or write the forcing file
+    ask_module.f90
+    unit_number_module.f90
+
+  IDL scripts
+
+  idl/                     visualisation utility (new) (by Adrian Tompkins)
+  idl_post.pro             visualisation utility (old)
+
+  Makefile                 Makefile
+  ab_ecmwf_32              Example vertical coefficient table (32 Levels)
+
+INSTALLATION
+
+  Fortran Programs:
+
+    Type 'make' within this directory. The executables 'post_1d', 'chvct',
+    and 'chua' will be placed in the ../../data directory
+
+    For the NAG compiler comment the lines starting with # in mo_system.f90.
+
+  IDL scripts:
+
+    Copy the content of idl/ to ../../data

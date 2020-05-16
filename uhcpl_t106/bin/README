@@ -1,0 +1,10 @@
+c=================nudging code for coupled model
+c======
+c======echam4_1: oceanic SST (1-day relaxation); 
+c======          NCEP_SST outside coupling region in forecast mode
+c====== 
+c======echam4_2: oceanic SST (10-day relaxation);
+c======          Climatological SST outside coupling region in forecast mode
+c======
+c======
+c==============Joshua X. Fu (10/06/2005)======================================c

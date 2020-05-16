@@ -1,0 +1,483 @@
+#!/bin/sh
+#PBS -l select=254
+#PBS -o temp.out
+#PBS -e temp.err
+#PBS -u joshuafu 
+#PBS -N EAK_ens_hin
+set -o
+set -x
+#################################################################
+# to run 10-ensemble fcsts
+# with this script
+#---------------------------------------------------------------
+#ulimit -s 1000000
+ulimit -s unlimited
+ulimit -v unlimited
+#
+############### User's section ####################################
+##
+## - Define architecture
+arch=Linux       # Linux/SX/ibm_power4/crayx1/crayxd1/crayxt
+chan=MPI1        # MPI1/MPI2
+RES=159
+LEV=31
+host=`uname -n`
+#####################################################################
+# carry out 1 12-ensemble run for a given year
+#
+my_year=2013 
+#NDAY=60
+#
+
+#icevents="01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27"
+icevents="01"
+
+for icevents in ${icevents}
+do
+
+case ${icevents} in
+   01 ) INDATE=0502; INDATE1=121; NDAY=183; OUTDATE=May_02; LAST_CHUNK=6; MTH=06 ;;
+   02 ) INDATE=0509; INDATE1=128; NDAY=60;  OUTDATE=May_09; LAST_CHUNK=7; MTH=07 ;;
+   03 ) INDATE=0516; INDATE1=135; NDAY=60;  OUTDATE=May_16; LAST_CHUNK=7; MTH=07 ;;
+   04 ) INDATE=0523; INDATE1=142; NDAY=60;  OUTDATE=May_23; LAST_CHUNK=7; MTH=07 ;;
+   05 ) INDATE=0530; INDATE1=149; NDAY=60;  OUTDATE=May_30; LAST_CHUNK=7; MTH=07 ;;
+   06 ) INDATE=0606; INDATE1=156; NDAY=60;  OUTDATE=Jun_06; LAST_CHUNK=7; MTH=07 ;;
+   07 ) INDATE=0613; INDATE1=163; NDAY=60;  OUTDATE=Jun_13; LAST_CHUNK=8; MTH=08 ;;
+   08 ) INDATE=0620; INDATE1=170; NDAY=60;  OUTDATE=Jun_20; LAST_CHUNK=8; MTH=08 ;;
+   09 ) INDATE=0627; INDATE1=177; NDAY=60;  OUTDATE=Jun_27; LAST_CHUNK=8; MTH=08 ;;
+   10 ) INDATE=0704; INDATE1=184; NDAY=60;  OUTDATE=Jul_04; LAST_CHUNK=8; MTH=08 ;;
+   11 ) INDATE=0711; INDATE1=191; NDAY=60;  OUTDATE=Jul_11; LAST_CHUNK=9; MTH=09 ;;
+   12 ) INDATE=0718; INDATE1=198; NDAY=60;  OUTDATE=Jul_18; LAST_CHUNK=9; MTH=09 ;;
+   13 ) INDATE=0725; INDATE1=205; NDAY=60;  OUTDATE=Jul_25; LAST_CHUNK=9; MTH=09 ;;
+   14 ) INDATE=0801; INDATE1=212; NDAY=60;  OUTDATE=Aug_01; LAST_CHUNK=9; MTH=09 ;;
+   15 ) INDATE=0808; INDATE1=219; NDAY=60;  OUTDATE=Aug_08; LAST_CHUNK=10; MTH=10 ;;
+   16 ) INDATE=0815; INDATE1=226; NDAY=60;  OUTDATE=Aug_15; LAST_CHUNK=10; MTH=10 ;;
+   17 ) INDATE=0822; INDATE1=233; NDAY=60;  OUTDATE=Aug_22; LAST_CHUNK=10; MTH=10 ;;
+   18 ) INDATE=0829; INDATE1=240; NDAY=60;  OUTDATE=Aug_29; LAST_CHUNK=10; MTH=10 ;;
+   19 ) INDATE=0905; INDATE1=247; NDAY=60;  OUTDATE=Sep_05; LAST_CHUNK=10; MTH=10 ;;
+   20 ) INDATE=0912; INDATE1=254; NDAY=60;  OUTDATE=Sep_12; LAST_CHUNK=10; MTH=10 ;;
+   21 ) INDATE=0919; INDATE1=261; NDAY=60;  OUTDATE=Sep_19; LAST_CHUNK=10; MTH=10 ;;
+   22 ) INDATE=0926; INDATE1=268; NDAY=60;  OUTDATE=Sep_26; LAST_CHUNK=10; MTH=10 ;;
+   23 ) INDATE=1003; INDATE1=275; NDAY=60;  OUTDATE=Oct_03; LAST_CHUNK=10; MTH=10 ;;
+   24 ) INDATE=1010; INDATE1=282; NDAY=60;  OUTDATE=Oct_10; LAST_CHUNK=10; MTH=10 ;;
+   25 ) INDATE=1017; INDATE1=289; NDAY=60;  OUTDATE=Oct_17; LAST_CHUNK=10; MTH=10 ;;
+   26 ) INDATE=1024; INDATE1=296; NDAY=60;  OUTDATE=Oct_24; LAST_CHUNK=10; MTH=10 ;;
+   27 ) INDATE=1031; INDATE1=303; NDAY=60;  OUTDATE=Oct_31; LAST_CHUNK=10; MTH=10 ;;
+esac
+#LAST_CHUNK=7  # Chunk start at 6 (May 1st IC) fu++
+# Name of the experiment
+ctl=EAK_ENS_FCST_${OUTDATE}
+
+####################################################################
+## - Define paths
+##
+prismdir=$HOME/poem2_ice_fcst
+#prismdir=$HOME/poem2_ice_ic
+datadir=/data22/xfu
+pop_data=$datadir/data_3comp/pop/gx1v3
+echam_data=$datadir/data_3comp/echam5/T$RES/
+cice_data=$datadir/data_3comp/cice/gx1v3
+oasis_data=$datadir/data_3comp/OASIS/gx1v3_t159_3comp
+#
+#restart_data=$datadir/data_3comp/restart/gx1v3_t159
+#fu++ start on Aug 1st, 2004
+restart_data=$datadir/AO_ens_out/ini/${INDATE}
+#
+bindir=$prismdir/$arch/bin
+###rundir=$HOME/model_develop/model_results/$ctl
+####OUTPUT_DIR=/poem_results/$ctl
+nudgdir=$datadir/data_3comp/nudg_atm_new
+rundir=$datadir/$ctl
+OUTPUT_DIR=$datadir/OI_results/$ctl
+#RESTART_DIR=$datadir/fcst_fu/restart_out
+#LOGFILE=$rundir/LOGFILE
+######################################################################
+#
+#RESTARTFILES=
+#RESTARTFILEARCIVE=hindcast_restart_jul20.tar
+######################################################################
+#
+## - Define names of executables
+atm_exe=cplatm
+oce_exe=cploce
+ice_exe=cplice
+
+## - Define number of processes to run cplatm and cploce
+nproc_atm=240
+nproc_oce=12
+nproc_ice=2
+
+## - Define MPIRUN, only used for arch=Linux
+#
+
+######################################################################
+# for restart run purpose. For initial run, delete the following part
+if [ ! -d $rundir ]; then
+  mkdir $rundir
+  mkdir $rundir/restart
+  mkdir $rundir/history
+#if [ ! -f $LOGFILE ]; then
+#  cp -f $restart_data/LOGFILE $rundir/
+#fi
+fi
+######################################################################
+#
+#if [ ! -f $LOGFILE ]; then
+#   THIS_CHUNK=1
+#  rm -rf $rundir
+#  mkdir -p $rundir
+#  mkdir -p $rundir/restart
+#else 
+#   PREV_CHUNK=`tail -1 $LOGFILE| awk '{ print $1 }'`
+#   THIS_CHUNK=`expr $PREV_CHUNK + 1`       ######First CHUNK is 8 now fu++
+#   PREV_LEN=`tail -1 $LOGFILE| awk '{ print $2 }'`
+#fi
+#
+#if [ $THIS_CHUNK == 1 ]; then
+#   RESUME=F
+#   YEAR=${my_year}
+#else
+   RESUME=T
+#   YEAR=`expr $PREV_CHUNK + 2151`
+   YEAR=${my_year}
+#fi
+#
+#============Integrate in a given day only
+#
+# rtime is the seconds to stop the coupler
+#
+#case $THIS_CHUNK in
+#  2 ) NDAY=31; MTH=01 ;;
+#  3 ) NDAY=28; MTH=02 ;;
+#  4 ) NDAY=31; MTH=03 ;;
+#  5 ) NDAY=30; MTH=04 ;;
+#  6 ) NDAY=61; MTH=05 ;;
+#  7 ) NDAY=61; MTH=06 ;;
+#  8 ) NDAY=31; MTH=07 ;;
+#  9 ) NDAY=31; MTH=08 ;;
+# 10 ) NDAY=60; MTH=09 ;;
+# 11 ) NDAY=31; MTH=10 ;;
+# 12 ) NDAY=30; MTH=11 ;;
+# 13 ) NDAY=31; MTH=12 ;;
+#esac
+#
+   nstep=`expr $NDAY \* 24`
+   rtime=`expr $NDAY \* 86400 + 86400`   #need an extra day
+   popday=`expr $NDAY`
+
+#
+#   PRE_YEAR=`expr $YEAR - 1`  # no need fu++
+   NEXT_YEAR=$YEAR             # won't update YEAR fu++ 
+#
+#fu++
+# 5479 is the last day of 2004
+# 5844 is the last day of 2005
+# 8401 is the last day of 2013
+#
+   CHUNK_LEN=`expr 8401 + $INDATE1 + $NDAY`
+#fu++
+#
+#   CHUNK_LEN=100000000000
+#
+############### End of user's section ################################
+
+echo ''
+echo '*****************************************************************'
+echo ''
+echo 'rundir       :' $rundir
+echo 'oasis_data      :' $oasis_data
+echo 'bindir       :' $bindir
+echo 'architecture :' $arch
+echo 'host         : '$host
+echo 'chan         : '$chan
+echo 'CHUNK_LEN    : '$CHUNK_LEN
+echo 'year         : '$year
+echo 'cplatm runs on '$nproc_atm 'processes'
+echo 'toyoce runs on '$nproc_oce 'processes'
+echo 'toyice runs on '$nproc_ice 'processes'
+echo ''
+######################################################################
+###
+### 1. Copy and modify necessary files depending on job number
+# For initial run when THIS_CHUNK=1 for setup. For restart run when THIS_CHUNK=2 to setup
+#
+#  if [ $THIS_CHUNK == ${LAST_CHUNK} ]; then   
+#
+# First run : start
+  NUG_INI=F   #fu++
+#
+# 
+  cp -f $bindir/cploce.$chan.x $rundir/$oce_exe
+  cp -f $bindir/cplatm.$chan.x $rundir/$atm_exe
+  cp -f $bindir/cplice.$chan.x $rundir/$ice_exe
+  cp -f $oasis_data/* $rundir/.
+  cp -f $pop_data/pop_in_mct_restart_day_ens_fu $rundir/pop_in
+  cp -f $pop_data/damp_month.nc $rundir/.
+  cp -f $pop_data/loc_marginalsea.dat $rundir/.
+#  cp -f $restart_data/* $rundir/.
+  cp $cice_data/global_gx1.grid $rundir/grid
+  cp $cice_data/global_gx1.kmt $rundir/kmt
+  cp $cice_data/ice_in_t159_day $rundir/ice_in
+#
+
+  chmod +x $rundir/$oce_exe $rundir/$atm_exe $rundir/$ice_exe
+#-----------------------------------------------------------#
+#else
+#
+# Restart run 
+#  NUG_INI=F     #fu++
+#
+#  rm -f $rundir/*.prt*
+##  rm -f $rundir/rmp*
+#  rm -f $rundir/anaisout
+#fi
+# Input CPUs for running cploce 
+# fu++
+#------------------------------------------------------------#
+cp -f $pop_data/pop_in_mct_restart_day_ens_fu $rundir/pop_in
+cd $rundir
+ed $rundir/pop_in <<EOF
+g/ncpu/s/ncpu/$nproc_oce/
+g/stopday/s/stopday/$NDAY/
+g/restday/s/restday/$CHUNK_LEN/
+w
+q
+EOF
+
+cp -f $cice_data/ice_in_t159_day $rundir/ice_in
+ed $rundir/ice_in <<EOF
+g/nstep/s/nstep/$nstep/
+#g/popday/s/popday/$popday/
+g/nday/s/nday/$CHUNK_LEN/
+g/nprocessor/s/nprocessor/$nproc_ice/
+w
+q
+EOF
+
+cp $rundir/namcouple_new $rundir/namcouple
+ed $rundir/namcouple <<EOF
+g/mpixx/s/mpixx/$chan/
+g/nproc_atm/s/nproc_atm/$nproc_atm/
+g/nproc_atm/s/nproc_atm/$nproc_atm/
+g/nproc_oce/s/nproc_oce/$nproc_oce/
+g/nproc_oce/s/nproc_oce/$nproc_oce/
+g/run_time/s/run_time/$rtime/
+w
+q
+EOF
+######################################################################
+###
+### 2. Create configuration scripts
+
+if [ $arch == Linux ]; then
+  # Linux
+  #
+  if [ $chan == MPI2 ]; then
+      echo 'Running on Linux with MPI2 not implemeted here!'
+  fi
+   cat <<EOF> $rundir/appl-linux.conf
+-n $nproc_oce  $rundir/$oce_exe  
+EOF
+   cat <<EOF>> $rundir/appl-linux.conf
+-n $nproc_atm  $rundir/$atm_exe
+EOF
+   cat <<EOF>> $rundir/appl-linux.conf
+-n $nproc_ice  $rundir/$ice_exe  
+EOF
+else 
+  echo 'For architecture='$arch ' you have to add your execution'
+  exit
+fi 
+
+######################################################################
+#----------------------------------------------------------------------
+# experiment description and variables
+
+if [ ! -d $rundir ]
+  then
+   mkdir -p $rundir
+ fi
+# experiment description
+# EXP ... full name of experiment
+
+# experiment description
+USER_ID=XB            # short for Ingo Kirchner (2 chars or digits)
+EXP_SERIES=999        # series number or experiment class (3 chars or digits)
+EXP_SHORT=ctrl        # short name of experiment (4 chars or digits)
+
+# compose the full name of the experiment (9 chars or digits)
+EXP=${USER_ID}${EXP_SERIES}${EXP_SHORT}
+
+# set numbers os CPU's for multitasking
+#
+# define the resolution and boundary condition data
+
+# experiment control
+
+# prepare working directory
+
+########################################################################
+cd $rundir
+# prepare initial data
+########################################################################
+rm -f unit.*
+rm rrtadata
+    ln -s  ${echam_data}/T${RES}L${LEV}_jan_spec.nc        unit.23
+    ln -s  ${echam_data}/T${RES}_jan_surf.nc               unit.24
+# for climatological sst and ice (LAMIP=F) use:
+    ln -s  ${echam_data}/amip2/T${RES}_amip2sst_clim.nc    unit.20
+    ln -s  ${echam_data}/amip2/T${RES}_amip2sic_clim.nc    unit.96
+    ln -s  ${echam_data}/T${RES}_O3clim2.nc                unit.21
+    ln -s  ${echam_data}/T${RES}_VLTCLIM.nc                unit.90
+    ln -s  ${echam_data}/T${RES}_VGRATCLIM.nc              unit.91
+    ln -s  ${echam_data}/T${RES}_TSLCLIM2.nc               unit.92
+# surrta_data: contains absorption constants for the absorbers 
+# (H20 CO2 O3 CH4 CCL4 CFC12 and CFC22)
+    ln -s  ${echam_data}/surrta_data       rrtadata
+##############################################################################
+# link nudging data
+# fu++
+    ln -s ${nudgdir}/nudge_ncep.${my_year}0112.stp    ndg_stp${my_year}${MTH}
+    ln -s ${nudgdir}/nudge_ncep.${my_year}0112.sst    ndg_sst${my_year}${MTH}
+    ln -s ${nudgdir}/nudge_ncep.${my_year}0112.div    ndg_div${my_year}${MTH}
+    ln -s ${nudgdir}/nudge_ncep.${my_year}0112.vor    ndg_vor${my_year}${MTH}
+#
+#=============================================================================##
+#  namelist control variables and output control for grid variables
+#  spectral variables are written out by default except liq. water
+#  for production runs set LABORT=.TRUE.
+#
+# LREPRO=.TRUE. (default) for reproducable results in multitasking mode
+# the overhead is small
+#
+cat > namelist.echam <<EOF
+&RUNCTL
+  LRESUME=$RESUME
+  OUT_DATAPATH = "${rundir}/"
+  OUT_EXPNAME  = "${EXP}"
+  DT_START     = 1990,01,01,0,0,0
+  DT_STOP      = 2500,01,01,0,0,0
+  NO_DAYS      = $NDAY 
+  PUTDATA      = 1,'days','last',0
+  PUTRERUN     = $CHUNK_LEN,'days','last',0
+  PUTOCEAN     = 1,'days','last',0
+  GETOCEAN     = 1,'days','last',0
+  LAMIP=F, 
+  LABORT=T,
+  LCOUPLE=T,
+  LNUDGE=F,
+  ldebugio=T,
+  ldebugev=T,
+  NPROCA=60
+  NPROCB=4
+/
+&PHYSCTL
+  LCOVER=F
+  LICE=F
+/
+$EXP
++127 ALAKE
++194 SLF
+/
+&NDGCTL
+   LNUDGINI=${NUG_INI}
+   DT_NUDG_START=2004,01,01,0,0,0
+   DT_NUDG_STOP=2014,12,31,0,0,0
+   NDG_FILE_STP="ndg_stp${YEAR}${MTH}" 
+   NDG_FILE_DIV="ndg_div${YEAR}${MTH}" 
+   NDG_FILE_VOR="ndg_vor${YEAR}${MTH}" 
+   NDG_FILE_SST="ndg_sst${YEAR}${MTH}" 
+   lnudgdbx=T,
+   lnudgwobs=T,
+/
+EOF
+
+echo
+pwd
+echo
+
+######################################################################
+###
+### 3. Execute the model
+
+cd $rundir
+  echo 'Executing the model using ' $THIS_CHUNK 
+
+#  cat <<EOF >$rundir/run_poem.$arch
+##!/bin/sh
+/bin/echo " ExecutionHost : " \\c
+hostname                   # print name of current host
+###====================================================================
+# run 20-ensembles
+#
+events="001 002 003 004 005 006 007 008 009 010 011 012"
+#events="${events} 011 012 013 014 015 016 017 018 019 020"
+#
+
+for events in ${events}
+do 
+echo "current ensemble-number ${events}"
+######
+############################################################
+# refresh restart files for another ensemble run
+#
+cp -f $restart_data/e${events}/*   $rundir/.
+cp -f $rundir/ice.restart_file     $rundir/restart/.
+cp -f $rundir/iced*                $rundir/restart/.
+#
+# set up result directories
+#
+
+result_dir=/data22/xfu/AO_ens_out/out/${OUTDATE}/e${events}
+
+#
+#tar cvf temp1.tar oceout85
+#mpiexec --mca btl ^sm --app $rundir/appl-linux.conf \
+mpiexec --app $rundir/appl-linux.conf \
+	2> $rundir/err_${OUTDATE}_${events} \
+	1> $rundir/out_${OUTDATE}_${events}
+
+#
+#
+
+/bin/echo " job completed at: " \\c
+echo 'toyclim '$run'run is executed or submitted to queue.'
+echo 'Results are found in rundir : '$rundir 
+
+#
+#=========================================================================#
+#  back-up model outputs
+#=====================================================================#
+mv $rundir/${EXP}_*                   ${result_dir}/.
+mv $rundir/history/iceh*nc            ${result_dir}/.
+mv $rundir/pop_tavg*                  ${result_dir}/.
+cp -f  $rundir/iced*                  ${result_dir}/.
+#=======================================================================#
+#
+   echo "EXP-${OUTDATE}-e${events} finished; start NEXT!!"
+#
+#
+done # end of 12 ensembles
+#
+# prepare next job
+#echo "$THIS_CHUNK $CHUNK_LEN ${YEAR} finished at `date`" >> $LOGFILE
+#cp -f $pop_data/pop_in_mct_restart_day $rundir/pop_in
+#
+done   # end of 12-ics
+# prepare next job
+#if [ $THIS_CHUNK -ge $LAST_CHUNK ]
+#then
+#    echo "FCST EXPERIMENT finished"
+#    exit
+#else
+#  echo " run the following CHUNK, no, no!!"
+#  cd $prismdir/running/script/run_ctrl
+#  chmod +x run_11mth_lnudg
+#  ./run_11mth_lnudg
+#fi
+#
+#EOF
+#chmod +x $rundir/run_poem.$arch
+# $rundir/run_poem.$arch
+#
+exit

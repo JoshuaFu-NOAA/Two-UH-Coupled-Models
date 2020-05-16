@@ -1,0 +1,87 @@
+ECHAM4 Surface Initial Files (Unit 24)
+======================================
+
+Structure
+---------
+
+ The files are divided into two sections - a data description section
+ containing records which describe the data, followed by data records
+ which contain the data. 
+
+ Resolution:
+
+  T21  :  NGL =  32, NLON =  64
+  T30  :  NGL =  48, NLON =  96
+  T42  :  NGL =  64, NLON = 128
+  T63  :  NGL =  96, NLON = 192
+  T106 :  NGL = 160, NLON = 320
+
+  NLP2 = NLON + 2
+
+ Data description records (DDR):
+
+  Data decription records describe the data in the data section. Data
+  decription records always begin with a section containing items
+  of type INTEGER. Word 1 of each DDR indicates its effective length
+  in words, word 2 the number of integer items in the first section,
+  and word 3 the effective length of the next DDR, or zero if the
+  current DDR is the last DDR. The general contens of the data decription
+  records are discussed in Research Manual 2 (ECMWF forecast model).
+  The Surface Initial files have normaly 5 DDRs with 3072 words each.
+
+ Data records:
+
+  A Gaussian latitude/longitude grid is used. NGL latitudes records are ordered
+  row 1 (North), row 1 (South), row 2 (North), row 2 (South), etc. (ping-pong).
+  Each latitude contains 15 variables with NLP2 words each. Only NLON words 
+  are significant. All variables are of type "real" except No.9 which is a 
+  typeless packed array.
+
+ Variables on each latitude:
+
+   No.  variable  code   description
+
+   1    GEOSPM    129   surface geopotential (orography)  [m**2/s**2]
+   2    TSM       139   surface temperature               [K]
+   3    WSM       140   soil wetness                      [m]
+   4    WLM       193   skin reservoir content            [m]
+   5    SNM       141   snow depth                        [m]
+   6    SLMM      172   land sea mask                     [0.: sea, 1.: land]
+   7    AZ0M      173   surface roughness length          [m]
+   8    ALBM      174   solar surface background albedo   [fract.]
+   9    VARPM           directional orographic variances  (packed array)
+  10    VARORM    199   orographic variance for runoff
+  11    FORESTM   212   forest coverage                   [fract.]
+  12    VGRATM    198   vegetation ratio                  [fract.]
+  13    VLTM      200   leaf area index
+  14    WSMXM     229   soil water holding capacity       [m]
+  15    FAOM      226   soil data flags                   [0...5.]
+
+
+Programs
+--------
+
+ It exist some programs to read and write Surface Initial files on the 
+ CRAY C90 (sea and lake).
+
+ Read Surface Initial files:
+
+   The program 'INI2SRV4' reads an Surface Initial file and convert it to
+   the pure service format.
+
+       INI2SRV4 inifile srpfile
+
+ Write Surface Initial files:
+
+   The program 'INI4SRV4' convert a file in pure service format
+   to the Surface Initial file format. The outputfile must be an old
+   Surface Initial file from which the program will use the DDR's for 
+   the new Surface Initial file.
+
+       INI4SRV4 srpfile inifile
+
+ Both programs are installt on the 'sea' and 'lake' in:
+
+   /pf/m/m214003/public
+
+

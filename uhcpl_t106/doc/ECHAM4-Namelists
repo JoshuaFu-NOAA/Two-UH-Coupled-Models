@@ -1,0 +1,358 @@
+==================================================
+Documentation of model namelists
+on CRAY (sea/lake)  /pf/k/k204003/doc/ECHAM4-Namelists (version, 22-Jul-96)
+==================================================
+
+Removed variables:
+ RUNCTL : LCORE 
+ PHYSCTL: LSCV, LKUO0, LQNEGAT
+ DYNCTL : DIFVO, DIFD, DIFT, DIFQ, DIFX
+
+Namelist TRACTL controlling tracers has been added.
+Namelist NMICTL has been removed.
+
+ 
+---- SDSCTL  - control parameter and I/O units  ----
+     ======
+  Name       Type         Purpose                                Default
+  ----       ----         -------                                -------
+
+  LRES      LOGICAL      Rerun switch:                            TRUE
+                        TRUE:  Restart from rerun files (unit.31..37)
+                        FALSE: Start from initial files (unit.23,24)
+
+  NDIAFI    INTEGER      Length of a run in days (maximum is 30)    30
+
+  NSDS1     INTEGER      Integers for optional use                   1
+  NSDS2                                                              1
+
+  ASDS1     REAL         Reals for optional use                      1.
+  ASDS2                                                              1.
+
+  LSDS1     LOGICAL      Logicals for optional use                .FALSE.
+  LSDS2                                                           .FALSE.
+
+  
+      Logical I/O units for files:
+
+
+  NIST      INTEGER      Annual cycle of surface temperature        20
+
+  NIST0     INTEGER      AMIP-SST: previous year                    17
+
+  NIST1     INTEGER      AMIP-SST: current year                     18
+
+  NIST2     INTEGER      AMIP-SST: next year                        19
+
+  NINI      INTEGER      Optional tracer initial fields             12
+
+  NFL1      INTEGER      Optional fields read at NSTEP=0            13
+
+  NFL2      INTEGER      Optional fields read at NSTEP=NRESUM       14
+                                      (including NSTEP=0)
+
+  NEMI      INTEGER      Surface emissions                          15
+
+  NISP      INTEGER      Spectral initial file                      23
+
+  NIGP      INTEGER      Gridpoint initial file                     24
+
+  NGRIBS    INTEGER      Grib output file for spectral variables    29
+
+  NGRIBG    INTEGER      Grib output file for grid point variables  NGRIBS
+
+  NGRIBX    INTEGER      Grib output file for G4X_ variables        16
+
+  NDIAHDF   INTEGER      File for horizontal diffusion statistics   11
+
+  NJIN      INTEGER      "job_" input file                          30
+
+  NJOUT     INTEGER      "subjob_" output file                      39
+
+
+
+---- TRACTL  - variables to control tracer transport
+     ======
+  Name       Type         Purpose                                Default
+  ----       ----         -------                                -------
+
+  NTRAC     INTEGER      number of tracers (maximum 21)             0
+
+  LSLT      LOGICAL      .TRUE. for semi-lagrangian transport     TRUE
+            ARRAY         of tracers
+
+  NFIX      INTEGER      switch for mass fixer type of humidity    1
+            ARRAY        and cloud water
+                         0: no fixer, 1: old fixer, 2: new fixer
+                         (see chapter 2.8 in the echam4 manual)
+
+  NFIXT     INTEGER      switch for mass fixer type of tracers     1
+            ARRAY        (see NFIX)
+
+  LPPXT     LOGICAL      switches for tracer write out          21*FALSE
+            ARRAY
+
+  NTCODE    INTEGER      code numbers for tracers             235 ... 255
+            ARRAY
+
+  LXTVDIFF  LOGICAL      .TRUE. for turbulent tracer transport   TRUE
+
+  LXTCONV   LOGICAL      .TRUE. for convective tracer transport  TRUE
+
+  LWETDEP   LOGICAL
+
+  VDRYDEP   REAL
+
+  SXTINI    REAL
+    
+  SXTEMI    REAL
+
+  SXTSINK   REAL
+
+  LHTRAC    LOGICAL
+
+
+---- RUNCTL  - run control variables ---------------------------------------
+     ======
+  Name       Type         Purpose                                Default
+  ----       ----         -------                                -------
+
+  NSTOP     INTEGER      Time step to stop the experiment         10 timesteps
+                         NSTOP > 0 : stop after NSTOP timesteps
+                         NSTOP < 0 : stop after -NSTOP days
+
+  NPTIME    INTEGER      Frequency of write-up                    12 hours
+                         to GRIB-file ${EXP}_yymm.dd (unit 29)
+                         NPTIME > 0 : every NPTIME timesteps
+                         NPTIME < 0 : every -NPTIME days
+
+  NWTIME    INTEGER      Frequency of rerun files write-up         1 month
+                         (causes interrupt of model run)
+                         NWTIME > 0 : every NWTIME timesteps
+                         NWTIME < 0 : every -NWTIME days
+
+  LWMONTH   LOGICAL      True to interrupt a run at the end of a   TRUE
+                         month including write-up of rerun files
+                         (If NWTIME is set, the default is FALSE)
+
+  LABORT    LOGICAL      True for exit at end of experiment        TRUE
+                         (timestep=NSTOP) to interrupt rerun chain
+
+  DTIME     REAL         Time step in seconds    T21    T42    T63    T106
+                                                 ---    ---    ---    ----
+                                                2400.  1440.   900.   720.
+
+  NWLAG     INTEGER      Frequency for saving rerun files          13 (i.e.
+                         in months (inhibits overwriting)           no saving)
+
+  NSUB      INTEGER      Number of submit jobs written at the        0
+                         end of a run (maximum 9)
+
+  NSUBINT   INTEGER      Frequency of submits in months             9*1
+            ARRAY           NSUBMIT > 0 : MOD(month,NSUBMIT)
+                            NSUBMIT < 0 : MOD(month-1,-NSUBMIT)
+
+  LSUB      LOGICAL      True for submitting NSUB jobs at the end   TRUE
+                         of a run by the model
+
+  LAMIP     LOGICAL      True for using variable SST-files          FALSE
+
+  LREPRO    LOGICAL      True for reproducable results in           TRUE
+                         multitasking mode
+
+  LSSTADJ   LOGICAL      True for orographic adjustment of SST      FALSE
+
+  LHG3X     LOGICAL      True for using G3X information from        FALSE
+                         rerun files, false for using namelist
+
+  NSPACE1   INTEGER      Size of space managed by                   automatic
+                         memory manager for root task               adjustment
+
+  NSPACE2   INTEGER      Same as NSPACE1 but for slave tasks           "
+
+  NSPADD    INTEGER      Memory space to add to or subtract from       0
+                         NSPACE1 and NSPACE2
+
+  NG3XP     INTEGER      Number of extra G3-fields (G3Xnn, max. 99)    0
+
+  NG3XL     INTEGER      Number of levels of extra G3-fields         99*1
+
+  LXACCU    LOGICAL      Switches for accumulation (=mean over       99*F
+            ARRAY        postprocessing interval) of extra G3-fields
+  
+  NXPBITS   INTEGER      Number of bits of extra G3-fields in        99*16
+            ARRAY        GRIB-format 
+                       
+  NG4XP     INTEGER      Number of extra G4-fields (G4Xnn, max. 99)    0
+
+  NG4XL     INTEGER      Number of levels of extra G4-fields          99*1
+            ARRAY
+
+  L4XACCU   LOGICAL      Switches for accumulation (=mean over        99*F
+            ARRAY        postprocessing interval) of extra G4-fields
+
+  NX4PBITS  INTEGER      Number of bits of extra G4-fields in         99*16
+            ARRAY        GRIB-format 
+
+  N4PTIME   INTEGER      Frequency of write up of extra G4-fields    NPTIME
+                         to file ${EXP}Xyymm.dd  (unit NGRIBX)
+
+  NUMFL1    INTEGER      Number of optional fields read at NSTEP=0       0
+
+  NUMFL2    INTEGER      Number of optional fields read at NSTEP=NRESUM  0
+                                                (including NSTEP=0)
+
+                     
+---- DYNCTL  - control options for the dynamics and general control -------
+     ======
+  Name       Type          Purpose
+  ----       ----          -------                                  Default
+                                                                    -------
+  NDIADFR   INTEGER      Frequency
+                         NDIADFR > 0 : every NDIADFR time step
+                         NDIADFR = 0 : no diagnosticnostics         5 days
+                         NDIADFR < 0 : every -NDIADFR hour
+
+  NDIAVFR   INTEGER      Frequency of dynamical diagnostics for     0  ( no
+                         each level                                 diagnostic)
+                         NDIAVFR > 0 : every NDIAVFR time step
+                         NDIAVFR = 0 : no diagnostic
+                         NDIAVFR < 0 : every -NDIAVFR hour
+
+  LZONDIA   LOGICAL      True for zonal diagnostics                  FALSE
+                         in NDIADFR interval
+
+  LDIAHDF   LOGICAL      True for write out of diffusion diagnostic  FALSE
+
+  LUMAX     LOGICAL      True to print information on maximum wind   FALSE
+                         in NDIADFR interval
+
+  VCHECK    REAL         Threshold value for high wind speed warning   200.
+                         
+  APSURF    REAL         Global mean surface pressure [Pa]           98200.
+                         (depends on orography)
+
+                                                      
+                                                      
+  DAMPTH    REAL         Damping time in hours for the horizintal 
+                         diffusion of vorticiy, 
+                         divergence and temperature
+                                                   T21    T42    T63   T106
+                                                   ---    ---    ---   ----    
+                                                    6.     9.     9.    3.
+   
+
+----PHYSCTL  (control options for diabatic processes) ----------------------
+    =======
+  Name       Type          Purpose                                  Default
+  ----       ----          -------                                  -------
+
+  LPHYS     LOGICAL     True for parameterization of diabatic        TRUE
+                        processes
+
+  LVDIFF    LOGICAL     True for turbulent vertical diffusion        TRUE
+
+  LCONV     LOGICAL     True for Cumulus convection (mass flux)      TRUE
+
+  LGWDRAG   LOGICAL     True for gravity wave drag scheme            TRUE
+                                                              T21:  FALSE
+
+  LCOND     LOGICAL     True for large scale condensation scheme     TRUE
+
+  LSURF     LOGICAL     True for soil model                          TRUE
+
+  LICE      LOGICAL     True for calculation of sea-ice temperature  TRUE
+
+  NDIAPFR   INTEGER     Frequency of physics budget diagnostics      10 days
+                        NDIAPFR > 0 : every  NDIAPFR timesteps
+                        NDIAPFR < 0 : every -NDIAPFR hours
+
+
+----RADCTL  (control options for the radiation scheme) -----------------------
+    ======
+  Name      Type         Purpose                                   Default
+  ----      ----         -------                                   -------
+
+  LRAD      LOGICAL    True for radiation                            TRUE
+
+  LDIUR     LOGICAL    True for diurnal cycle                        TRUE
+
+  LSOLC     LOGICAL    True for computation of solar clear sky fluxes  TRUE
+
+  NMONTH    INTEGER    Month for perpetual month experiments           0
+                       NMONTH = 1..12 : number of month (Jan..Dec)
+                              (choose appropiate initial data !)
+                       NMONTH = 0     : annual cycle
+
+  NRADFR    INTEGER    Frequency of full radiation computations      2 hours
+                       NRADFR > 0 : every NRADFR timesteps
+                       NRADFR < 0 : every -NRADFR hours
+
+  NRADPFR   INTEGER    Print frequency for radiation statistics       126
+                       in number of radiation steps
+
+  NRADPLA   INTEGER    Print radiation statistics every NRADPLA       10
+                       latitude line
+
+  LCFC      LOGICAL    True for CFC's                                FALSE
+
+  CO2FAC    REAL       CO2-Factor                                     1.
+                                                                for 353 ppm
+
+  LAER      LOGICAL    True for standard aerosols                    TRUE
+
+  NDFAER    INTEGER    Definition array for additional               12*0
+                       aerosol components 
+
+                                                             
+        AEROSOL-COMPONENTS             RADIUS (MICRON) SIGMA  DENSITY(G/CM3)
+        ------------------             --------------- -----  --------------   
+                                       R(0%)   R(80%)  
+        1. WATER-INSOLUBLE       INSO  0.471   0.471   2.51    2.0
+        2. WATER-SOLUBLE         WASO  0.0212  0.031   2.24    1.8
+        3. SOOT                  SOOT  0.0118  0.0118  2.00    2.3(1.0)
+        4. SEA-SALT (NUC)        SSNM  0.03    0.052   2.03    2.2
+        5. SEA-SALT (ACC)        SSAM  0.209   0.416   2.03    2.2
+        6. SEA-SALT (COA)        SSCM  1.75    3.49    2.03    2.2
+        7. MINERAL (NUC)         MINM  0.07    0.07    1.95    2.6
+        8. MINERAL (ACC)         MIAM  0.39    0.39    2.00    2.6
+        9. MINERAL (COA)         MICM  1.90    1.90    2.15    2.6
+       10. MINERAL TRANSPORTED   MITR  0.5     0.5     2.20    2.6
+       11. SULPHATE DROPLETS     SUSO  0.0695  0.118   2.03    1.7
+       12. UNSPECIFIED 
+
+
+       COEFFICIENTS ARE GIVEN FOR REL. HUMIDITY:
+       0%, 50%, 70%, 80%, 90%, 95%, 98%, 99%
+
+
+
+ ---- POSTCTL   (control of prognostic variables write out) ---
+      =======
+
+  Name        Type         Purpose                              Default
+  ----        ----         -------                              -------
+
+  LPPSPE      LOGICAL      True for write out of all prognostic  TRUE
+                           variables except tracers
+
+  LPPD        LOGICAL      True for write out of divergence      TRUE
+
+  LPPVO       LOGICAL      Idem for vorticity                    TRUE
+
+  LPPT        LOGICAL      Idem for temperature                  TRUE
+
+  LPPP        LOGICAL      Idem for surface pressure             TRUE
+
+  LPPQ        LOGICAL      Idem for specific humidity            TRUE
+
+  LPPX        LOGICAL      Idem for liquid water content         TRUE
+
+
+    Note:  Write out of tracers is controlled by LPPXT
+           in namelist TRACTL.
+           Write out of other variables is controlled
+           by the code table (see example job).
+
+
+file   rainbow:/pf/k/k204003/doc/ECHAM4-Namelists

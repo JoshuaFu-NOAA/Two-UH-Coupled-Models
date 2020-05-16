@@ -1,0 +1,44 @@
+# Solaris/Fujitsu
+
+# Enable CC and F90 only, if not the standard compiler should be used 
+
+ARCH       = solaris
+
+case `uname -n` in
+xxf)
+    MPIROOT    = /optSUNWhpc 
+    MPI_LIB    = -lmpi
+    ;;
+igam07ws)
+    MPIROOT    = /dsk/dmg12/support
+    MPI_LIB    = -lmpich -lthread -lsocket -lnsl -laio
+    ;;
+*)
+    MPIROOT    =
+    MPI_LIB    =
+    ;;
+esac
+
+case `uname -n` in
+igam07ws)
+    NETCDFROOT = /dsk/dmg12/support
+    ;;
+*)  	
+    NETCDFROOT = /pf/m/mo/m214089/local/SUN
+    ;;
+esac
+
+CC       = cc
+CFLAGS   = -O
+
+F90      = frt
+FFLAGS   = -Am -CcdRR8 -X9 -Kfast,V8PLUS -Kfastlib -fw
+F90FLAGS = -Am -CcdRR8 -X9 -Kfast,V8PLUS -Kfastlib -fi -Ecf -x 1000 -Cpp -D__uxp__
+
+DEFOPT   = -D
+
+MODOPT   = -M
+
+LIBS     = -L../lib -lsupport -llapack -lblas
+
+SRCDIRS  = blas lapack

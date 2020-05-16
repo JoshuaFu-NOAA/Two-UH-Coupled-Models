@@ -1,0 +1,26 @@
+# Hitachi SR8000
+
+# Enable CC and F90 only, if not the standard compiler should be used 
+
+ARCH       = SR8000
+
+#MPIROOT    = /usr/mpi
+#MPI_LIB    = $(MPIROOT)/lib/lib32 -lfmpi -lmpi
+
+#NETCDFROOT = /usr/local/gnulrz
+NETCDFROOT = /home/h/h045zaa
+
+CC       = cc
+CFLAGS   = -64 -loopdiag -model=F1 -O4 -pvec -pvdiag -nopar
+
+F90      = f90
+FFLAGS   = -basicr -nohugeary -precexp=4 -excnvf -64 -loopdiag -model=F1 -O4 -pvec -pvdiag -nopar -inline -rapidcall
+F90FLAGS = -basicr -nohugeary -precexp=4 -excnvf -64 -loopdiag -model=F1 -O4 -pvec -pvdiag -nopar -inline -rapidcall
+
+DEFOPT   = -D
+
+MODOPT   = -I
+
+LIBS     = -L../lib -lsupport -L/usr/lib/LAPACK/lib32s -llapack -L/usr/lib/BLAS/lib32s -lblas -lm
+
+SRCDIRS  = 

@@ -1,0 +1,65 @@
+! get the T30 three-dimension heating anomaly and add to the
+! original heating rate 'te' 
+
+SUBROUTINE heatding(jjrow,apm1,mlon,mlev,mloff,te)
+
+  !
+  ! Description:
+  !
+  !
+  ! *physc* called heatingfu in mo_gette.f90 
+  !
+  ! Externals:
+  ! *mo_gette*   1st scans over gaussian latitudes.
+  !
+  ! Authors:
+  !
+  ! X. Fu, IPRC, OCT 2000
+  ! Q. Ding, SOEST, SEP 2004
+  ! 
+  ! for more details e-mail to qinghua@hawaii.edu 
+  !
+
+  USE mo_control
+  USE mo_start_dataset
+  USE mo_constants
+  USE mo_gette         
+  USE mo_year,         ONLY: cd2dat
+  USE mo_mpi,         ONLY: p_pe, p_io
+  USE mo_doctor,      ONLY:nout,nerr
+
+   REAL :: apm1(mlon,mlev), te(mlon,mlev)
+
+    data pcen,pup,pdow/40000.,30000.,50000./ 
+
+  !heating center 400hpa, upper depth 300mb, lower depth 500mb
+
+    iday = ncbase + (ntbase+dtime*(nstep+1))/dayl + 0.01 !
+   CALL cd2dat(iday,id,im,iy)
+   
+   IF(im.gt.5.and.im.lt.10) THEN     !JJAS
+   !bb=1.-abs(float(im)-7.)*0.25 !heating rate changes with time
+   bb=1.
+
+
+   do i=1,mlon
+   ii=i+mloff
+   do k=1,mlev
+   aa=apm1(i,k)-pcen
+   if(aa.le.0.0) then
+   ab=1.+aa/pup
+   if(ab.le.0.) ab=0.
+   te(i,k)=te(i,k)+tefu(ii,jjrow)*ab*bb
+   else
+   ab=1.-aa/pdow
+   if(ab.le.0.) ab=0.
+   te(i,k)=te(i,k)+tefu(ii,jjrow)*ab*bb
+   end if
+
+   end do
+   end do
+
+   END IF
+
+  RETURN
+END SUBROUTINE heatding

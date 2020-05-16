@@ -1,0 +1,60 @@
+
+This directory contains programs and scripts to convert
+initial and sst data for the ECHAM f90 version from netCDF to
+8 Byte IEEE SERVICE format and back.
+It also contains some programs to convert the initial data from 
+the f77 ECHAM4 version (CRAY pure binary format) to netCDF or SERVICE.
+
+Install:
+-------
+
+'gmake' install the programs in the bin directory.
+
+modify 'Make.config' to change: 
+	NETCDFROOT	directory with the libs and include files of netCDF
+	CC		C-compiler
+	CFLAGS		options
+	DDEBUG		if you want debug informations
+
+
+Programs:
+--------
+
+     The following programs are available:
+
+     - Atmosphere initial data (unit:23)
+
+         inispec2anc:  Convert from CRAY to netCDF
+
+     - Surface initial data (unit:24)
+
+         inisurf2snc:  Convert from CRAY to netCDF 
+         snc2srv:      Convert from netCDF to SERVICE 
+         srv2snc:      Convert from SERVICE to netCDF 
+
+     - Annual cycle monthly mean data (SST, SIC, LAI, VEGETATION)
+
+         year2ync:     Convert from CRAY to netCDF 
+         ync2srv:      Convert from netCDF to SERVICE
+         srv2ync:      Convert from SERVICE to netCDF 
+
+     - Optional global fields (unit:13 and 14)
+
+         fld2srv:      Convert from CRAY to SERVICE 
+         fnc2srv:      Convert from netCDF to SERVICE 
+         srv2fnc:      Convert from SERVICE to netCDF 
+
+     - Ozone data (unit:21)
+
+         ozon2srv:     Convert from CRAY to SERVICE 
+         onc2srv:      Convert from netCDF to SERVICE 
+         srv2onc:      Convert from SERVICE to netCDF
+ 
+     - Restart data (unit:31-37)
+
+         res2rnc:      Convert from CRAY to Netcdf
+                       (write unit 33 and 34 to unit 31)
+
+
+     CRAY    : means CRAY binray data (from ECHAM f77 version)
+     SERVICE : means 8 Byte IEEE SERVICE format

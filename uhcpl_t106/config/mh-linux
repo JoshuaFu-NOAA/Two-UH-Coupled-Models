@@ -1,0 +1,36 @@
+# Intel/Linux
+#
+# Two working compiler sets:
+#
+# 1. Lahey/Fujitsu
+#
+#F90      = lf95
+#FFLAGS   = -O 
+#F90FLAGS = -CcdRR8 -Cpp
+#LIBS     = -L../lib -lsupport -lnetcdf90 -llapackmt -lblasmt
+#SRCDIRS  = netcdf90
+#MPIROOT    = /sw/linux/mpich-1.2.4-lf
+#
+# 2. NAG f95 - this is for testing and debugging
+#
+F90      = f95
+FFLAGS   = -O
+F90FLAGS = -C -mismatch -maxcontin=99 -nan -gline -r8 -g -fpp -DNAG -DLINUX
+LIBS     = -L../lib -lsupport -llapack -lblas
+SRCDIRS  = blas lapack
+MPIROOT    = /sw/linux/mpich-1.2.4-nag
+
+ARCH       = LINUX
+
+MPI_LIB    = -lmpich
+
+NETCDFROOT = /client
+
+CC       = gcc
+CFLAGS   = -O -DNAGf90Fortran
+
+DEFOPT   = -D
+MODOPT   = -I
+
+
+

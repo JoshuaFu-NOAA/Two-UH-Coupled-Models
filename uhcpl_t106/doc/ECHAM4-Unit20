@@ -1,0 +1,54 @@
+ECHAM4 SST Files (Unit 20)
+==========================
+
+Structure
+---------
+
+ Resolution:
+
+  T21  :  NGL =  32, NLON =  64
+  T30  :  NGL =  48, NLON =  96
+  T42  :  NGL =  64, NLON = 128
+  T63  :  NGL =  96, NLON = 192
+  T106 :  NGL = 160, NLON = 320
+
+
+ Data records:
+
+  Each file contains 12 month (Jan, Feb,...,Dec). Each Month has the 
+  following structure:
+  NGL latitudes in "ping-pong" format, each latitude contains NLON 
+  longitudes values.
+  The data must be writen in 64 bit CRAY binary format.
+
+ Contents:
+
+  Each Month contains the Sea Surface Temperature (SST) over
+  sea points and a climate temperature over land points in Kelvin.
+  All sea points less equal CTFREEZ (CTFREEZ = 273.16 - 1.79)
+  are sea ice.
+
+Programs
+--------
+
+ It exist some programs to read and write SST files on the 
+ CRAY C90 (sea and lake).
+
+ Read SST files:
+
+   The program 'sst2srp' reads an SST file and convert it to
+   the pure service format.
+
+       sst2srp sstfile srpfile
+
+ Write SST files:
+
+   The program 'srp2sst' convert a file in pure service format
+   to the SST file format.
+
+       srp2sst srpfile sstfile
+
+ Both programs are installt on the 'sea' and 'lake' in:
+
+   /pf/m/m214003/public
+

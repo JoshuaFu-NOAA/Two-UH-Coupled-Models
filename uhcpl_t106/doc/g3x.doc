@@ -1,0 +1,70 @@
+
+     Creating extra arrays in the ECHAM model
+     ========================================
+
+      Example  
+
+      3 extra arrays and their corresponding "m" fields 
+      are needed in the model:
+     
+      field1(nlp2),      field1m(nlp2)
+      field2(nlp2),      field2m(nlp2)      <- accumulated
+      field3(nlp2,nlev), field3m(nlp2,nlev)
+      
+-----------------------------------------------------------------------
+
+     Add the following to namelist RUNCTL:
+
+
+   &RUNCTL
+      ....
+      NG3XP=3,         number of extra arrays
+      NG3XL=1,1,19,    levels of extra arrays
+      LXACCU=F,T,F,    controls accumulation 
+      ....
+   &END
+
+---------------------------------------------------------------------
+
+  Use arrays in the program as follows:
+  You can use individual names for the extra arrays
+
+      USE mo_memory_g3a 
+      USE mo_memory_g3b 
+      REAL, POINTER :: field1(:), field1m(:)
+      REAL, POINTER :: field2(:), field2m(:)
+      REAL, POINTER :: field3(:,:), field3m(:,:)
+      ....
+      jrow=nrow(2)
+      field1  => g3(1)%x(:,1,jrow)
+      field2  => g3(2)%x(:,1,jrow)
+      field3  => g3(3)%x(:,1:nlev,jrow)
+      field1m => g3m(1)%x(:,1,jrow)
+      field2m => g3m(2)%x(:,1,jrow)
+      field3m => g3m(3)%x(:,1:nlev,jrow)
+      ...
+      field3(jl,jk)= xyz(jl,jk)* ....
+      ....
+
+-----------------------------------------------------------------------
+
+  Output of extra arrays:
+  Add the names of the fields you want to write out to the code table
+  of the standard input file:
+
+ ....
+ 101 G3X01
+ 102 G3X02
+ 103 G3X03   !-19
+ ...
+
+ The code numbers of the extra arrays are then 101, 102 and 103
+ (You can choose any numbers between 001 and 128)
+ To postprocess the codes use all postprocessing tools as normal
+ and request the above code numbers.
+
+
+U. Schlese, 4/93, 1/96 , original description
+Uwe Schulzweida, 6/99 , modify for the f90 version
+
+     

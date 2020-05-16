@@ -1,0 +1,44 @@
+#!/bin/sh
+#
+# This script calculate the zonal mean of the 
+# temperature and write an ASCII file with
+# the result to compare the ECHAM model output
+# with a reference output.
+#
+# Inputfile:  ECHAM4 model output file over one day
+# Outputfile: <inputfile.tab>
+#
+#
+set -e
+#
+BIN=../bin
+#
+DPATH=`dirname $1`
+DFILE=`basename $1`
+#
+if [ ! -f $DPATH/$DFILE ] ; then
+  echo "File $DPATH/$DFILE not found"
+  exit
+fi
+#
+# select temperature over all levels
+#
+$BIN/after -b 10000000 $DPATH/${DFILE} ${DFILE}.srp  << EOR
+ &SELECT
+  TYPE=20,
+  CODE=130
+  MEAN=0,
+  GRIB=0,
+ &END
+EOR
+#
+# create an ASCII file with the zonal mean
+#
+$BIN/createtab << EOR
+${DFILE}.srp
+${DFILE}.tab
+EOR
+#
+rm -f ${DFILE}.srp
+#
+exit

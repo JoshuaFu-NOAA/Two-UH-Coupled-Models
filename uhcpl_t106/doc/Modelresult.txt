@@ -1,0 +1,50 @@
+This is a short discription on how to check the ECHAM model results.
+
+First install the postprocessing routines in 'post/bin'.
+
+  - Change the working directory to 'post':
+
+    > cd post
+
+  - Create and install the postprocessing programs:
+
+    > gmake
+
+    This directory is not part of the ECHAM configuration
+    tree. If you have some problems to create the programs
+    then you have to edit the Makefile by yourself.
+
+
+After the installation you can start with the check of
+the model result. 
+
+You need an ECHAM4 model output file for a one day simulation
+with a write-up frequency for every timestep. That means
+you have to set the following lines in the namelist RUNCTL:
+
+  NWTIME=-1,
+  NPTIME=1,
+
+The output file can be checked easily with the following procedure.
+
+  - Change the working directory to 'post/table':
+
+    > cd post/table
+
+  - Check model result:
+  
+    > checkmoddat <modelresult>
+
+    for example:
+ 
+    > checkmoddat ../../data/99999test_000101.01
+
+The shell script 'checkmoddat' works in three steps.
+
+  - select the temperature for all levels [afterburner].
+  - create an ASCII file with the zonal mean from above [createtab].
+  - compare this ASCII table with a reference table [anatab].
+
+The result shows you where the maximum difference of temperature
+is. This difference should be less than 0.02 [Kelvin] for the 
+first timestep and less then 0.3 [Kelvin] for the last timestep.

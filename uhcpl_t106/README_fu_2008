@@ -1,0 +1,25 @@
+c==couple ECHAM4.6 AGCM to an intermediate ocean model
+c==testing version
+c==Xiouhua Fu (2/12/2001)
+
+c===modified to T42 version coupled model
+c===plus to run the 'lamip2' case
+
+c==Xiouhua Fu (9/28/2001)
+
+c===
+c===include atmospheric nudging
+c===
+
+c=====test ensemble runs
+c===
+c========Joshua X. Fu (10/14/2005)
+
+c====test the impacts of SST diurnal cycle
+c===
+c=== 
+c=== echam5_8
+c=======Joshua X. Fu (06/10/2008)=========c
+
+
+

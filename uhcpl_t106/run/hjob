@@ -1,0 +1,156 @@
+#!/bin/sh
+# QSUB -lM 8MW
+# QSUB -lT 60
+# QSUB -s /bin/sh
+# QSUB -eo
+# QSUB
+#
+#  job script for Bourne or POSIX shell
+#
+###############################
+set -e
+#
+PATH=/opt/bin:$PATH ; export PATH
+#
+RES=21
+EXPNO=99999
+DAT=../data
+cd $DAT
+#
+#######################################################################
+# set numbers os CPU's for multitasking (NCPUS=1 forces single tasking)
+#
+NCPUS=1
+export NCPUS
+########################################################################
+#
+DPATH=./                    # <--- directory where the model will run
+cd $DPATH                   #  output and rerun files are written into $DPATH
+#
+EXP=${EXPNO}test            # experiment identifier 
+MODEL=echam4                # executable model
+RERUN=.false.               # Rerun switch; .false. for initial run, .true. for reruns
+#
+INI4POOL=/net/gardiken/export/home/m214003/DATA/INI/NC/ECHAM4/T${RES}/
+#
+###################################################
+#
+# specification of file structures
+#
+################ CRAY ########################
+#
+rm -f unit.??
+#
+ln -s  ${INI4POOL}t${RES}jan.semi73.nc unit.23
+ln -s  ${INI4POOL}jan${RES}m.nc        unit.24
+ln -s  ${INI4POOL}year${RES}m.nc       unit.20
+#
+#
+ln -s  ${EXP}.31      unit.31
+ln -s  ${EXP}.32      unit.32
+ln -s  ${EXP}.35      unit.35
+ln -s  ${EXP}.36      unit.36
+ln -s  ${EXP}.37      unit.37
+#
+####################################################################
+#  namelist control variables and output control for grid variables
+#  spectral variables are written out by default except liq. water
+#  for production runs set LABORT=.TRUE.
+#
+# LREPRO=.TRUE. (default) for reproducable results in multitasking mode
+# the overhead is small
+#
+cat > namelist << EOF
+&SDSCTL
+  LRES=$RERUN,
+/
+&TRACTL
+/
+&RUNCTL
+  NSTOP=-31,
+  NWTIME=-1,
+  NPROCA=1,
+  NPROCB=1
+/
+&DYNCTL
+/
+&PHYSCTL
+/
+&RADCTL
+/
+&POSTCTL
+/
+$DPATH
+$EXP
+ 129 GEOSP   !
+ 134 APS     !
+ 139 TS      !
+ 140 WS      !
+ 141 SN
+ 142 APRL
+ 143 APRC
+ 144 APRS
+ 145 VDIS
+ 146 AHFS
+ 147 AHFL
+ 159 USTAR3
+ 160 RUNOFF  !
+ 161 DRAIN   !
+ 163 ACLCV
+ 164 ACLCOV  !
+ 165 U10     !
+ 166 V10
+ 167 TEMP2
+ 168 DEW2
+ 169 TSURF
+ 170 TD      !
+ 171 WIND10
+ 172 SLM
+ 173 AZ0
+ 175 ALBEDO
+ 176 SRADS
+ 177 TRADS
+ 178 SRAD0
+ 179 TRAD0
+ 180 USTR
+ 181 VSTR
+ 182 EVAP
+ 183 TDCL
+ 185 SRAFS
+ 186 TRAFS
+ 187 SRAF0
+ 188 TRAF0
+ 194 WLM1
+ 195 USTRGW
+ 196 VSTRGW
+ 197 VDISGW
+ 201 T2MAX
+ 202 T2MIN
+ 203 SRAD0U
+ 204 SRADSU
+ 205 TRADSU
+ 206 TSN
+ 207 TD3
+ 208 TD4
+ 209 TD5
+ 210 SEAICE
+ 214 TSMAX
+ 215 TSMIN
+ 216 WIMAX
+ 217 TOPMAX
+ 218 SNMEL
+ 220 TSLIN
+ 221 DSNAC
+ 223 ACLCAC  !-19
+ 230 QVI
+ 231 ALWCVI
+ 999 END
+EOF
+#
+#MPIPATH=/opt/mpich-fujitsu/bin
+#$MPIPATH/mpirun -np $NCPUS ../bin/$MODEL < namelist
+../bin/$MODEL < namelist
+#
+rm -f unit.??
+#
+exit

@@ -1,0 +1,171 @@
+INSTALLATION
+------------
+
+This version of ECHAM is doing IO for the initial and restart files
+based on NCAR's netCDF (see http://www.unidata.ucar.edu/packages/netcdf).  
+Take care that you use the right setup for your Fortran compiler when
+installing netCDF.
+
+Configuration files for a number of operating systems and/or compilers are 
+provided in the config directory. Please check your system's configuration
+file and edit it according to your needs. If you do any additional system port 
+let us know about it.
+
+You have to set the variable NETCDFROOT to the netCDF root
+directory on your machine in the machine specific mh-'file'. 
+At MPI this is on the Suns:
+
+NETCDFROOT = /client
+
+For use of MPI you have to set nothing which enables a compilation
+without MPI. Or you have to provide the required information in the
+machine specific mh-'file'.
+
+To compile you simply stay in the main directory echam4 and type:
+
+configure
+gmake
+
+The make system requires GNU make. In case you have not installed this
+you need to download and install it (eg. from
+ftp://ftp.uni-hamburg.de/pub/soft/gnu/make).
+
+Bug reports/info/comments to: schulzweida@dkrz.de
+
+RUNNING
+-------
+
+To run echam4 cd to echam4/run and edit the file hjob.
+Edit machine specific items: qsub options, the path to echam4_dat in INI4POOL
+and the way the executable is started (mpirun, mpprun,...) at the end of the
+script.
+
+For RES fill in either 106 for the T106 resolution (160x320 grid
+points) or 30 for the T30 resolution (48x96 grid points).
+
+Finally, choose the number of CPUs, NCPUS, and the way they are horizontally
+decomposed, i.e. NPROCA (# of CPUs in north/south direction) and NPROCB (# of
+CPUs in east/west direction).
+
+The following restrictions apply:
+                  (T30) (T106)
+NPROCA <= nlat/2  = 24     80  (nlat = # of latitudes)
+NPROCB <= nlon    = 96    320  (nlev = # of levels)
+
+Choose NPROCA so that nlat/2 >= 3 (joverlap).
+Parts of the computations are performed in spectral space. For these
+computations (and the Fourier and Legendre transformations) vertical
+levels or wavenumbers are spread over different processors.
+
+In order to obtain good load balancing for large processor numbers it
+is recommended that nlat/2 and nlev+1 should be a multiple of NPROCA
+and NPROCB, respectively. Generally partitioning in north south
+direction (NPROCA > NPROCB) is more efficient.
+
+The following restrictions are recommended:
+                  (T30) (T106)
+NPROCB <= nlev+1  = 20     20  (nlev = # of levels)
+
+Generally NCPUS should be NPROCA x NPROCB. If NCPUS is chosen to be
+NPROCA x NPROCB + 1 the additional processor is used to run the model
+on the full domain. The results of this processor are compared to the
+results obtained on the decomposed domain at certain breakpoints.  The
+program aborts if differences occur.
+
+
+TEST FOR CORRECTNESS
+--------------------------
+
+see echam4/doc/Modelresult.txt
+
+
+ADDITIONAL INFORMATION
+----------------------
+
+1. Configuration files for a larger set of operating systems and/or
+   compiler are given in the config directory. Please check out your 
+   system's configuration file. If you do any additional system port, 
+   let us know about it.
+
+2. Missing preprocessor option
+
+   For compiler which does not have a preprocessor enabling option, we
+   provide a perl script, util/f2F.pl. First copy this file into the main
+   echam4 directory and check the path to your perl binary at top of this
+   script. It changes all .f90 to .F90. As far as we know this files will
+   be automatically preprocessed by all compilers we found until now. This 
+   script patches as well the Makefiles, changing as well all .f90 to .F90 
+   and configure is patched to check as well for f95 compilers.
+
+3. Installation hints for netCDF on Fujitsu VPP700
+
+
+
+   The fortran compiler is unknown in the netCDF package, so it must be set 
+   by an environment variable:	
+
+csh:  setenv FC frt	 
+ sh:  FC=frt; export FC
+
+   this should be done before configure.
+
+   After running two adjustments have to be made. First add an frt compatible
+   compiler information for cfortran in macros.make adding -DNAGf90Fortran to 
+   the CFLAGS:
+
+   CFLAGS = -O -DNAGf90Fortran
+
+   configure cannot find the definition of ssize_t, usually located 
+   in sys/types.h (it's in unistd.h). This must be adjusted in 
+   libsrc/ncconfig.h: 
+
+   Change 
+
+	#define ssize_t int 
+
+   to 
+
+        /* #undef ssize_t */
+
+   The fortran tests doesn't work, but the fortran interface seems to work.
+
+   Note: This is not necessary on the VPP5000 any more. 	
+
+4. It should be noted that the Sun Workshop f90 compiler in all versions 
+   is not able to handle the model. For using ECHAM on a Sun workstation
+   another compiler is required. We develop using the Fujitsu f95 compiler.
+
+   At MPI/DKRZ please include
+
+   if ( -r /afs/dkrz.de/sw/s25/fujitsu_f90/bin ) then
+     set path = (/afs/dkrz.de/sw/s25/fujitsu_f90/bin $path )
+     setenv LD_LIBRARY_PATH /afs/dkrz.de/sw/s25/fujitsu_f90/lib:$LD_LIBRARY_PATH
+     setenv WB_WIN_KIND 1
+     setenv MANPATH /afs/dkrz.de/sw/s25/fujitsu_f90/man:$MANPATH
+   endif  
+
+   in your .login or .cshrc.  
+
+   Note: It seems that the newest version of the Sun Compiler (Forte 6) is
+         able to compile the model with very good performance.	
+
+5. On Fujitsu VPP the model does not work with MPI 1.x. You definitely need
+   MPI 2 (/usr/lang/mpi2 at ECMWF).
+ 
+6. NEC:
+
+   The file mo_transpose.f90 in /modules needs to be compiled with the 
+   -vsafe option (edit the Makefile in /modules manually). There are still
+   a lot of performance bugs pending. 
+
+7. NAG compiler:
+
+   The NAG compiler does not support an option to force preprocessing.
+   We have added a perl script which does the required changes. It can
+   be found in util/f2F.pl. Please use it after configure.
+
+   If compiling with the option -C=all, the option -mismatch has to be added 
+   for mo_mpi.f90 and mo_nudging.f90 in /modules and lti.f90 and ltd.f90 in
+   /src (edit the Makefile in /modules and /src manually).
+
+

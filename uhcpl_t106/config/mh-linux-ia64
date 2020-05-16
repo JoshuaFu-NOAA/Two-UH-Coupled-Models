@@ -1,0 +1,29 @@
+# Intel IA64/Linux
+#
+ARCH       = LINUX
+
+#F90      = efc
+#FFLAGS   = -O3 -mp1 -tpp1  
+#F90FLAGS = -O3 -mp1 -tpp1 -r8 -fpp
+
+F90      = ifort
+FFLAGS   = -O
+F90FLAGS = -O -nopad -r8 -fpp -align rec4byte
+
+LIBS     = -L../lib -lsupport -llapack -lblas -lcprts
+SRCDIRS  = lapack blas
+
+MPIROOT    = /usr
+MPI_LIB    = -lmpi
+
+#NETCDFROOT = /pf/m/m214089/local/ia64
+NETCDFROOT = /usr/local/netcdf-3.5.1
+
+CC       = icc
+CFLAGS   = -O -DNAGf90Fortran
+
+DEFOPT   = -D
+MODOPT   = -I
+
+
+

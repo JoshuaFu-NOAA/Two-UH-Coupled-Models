@@ -1,0 +1,434 @@
+!+ controls the time step.
+!+ $Id: stepon.f90,v 1.39 1999/11/10 08:21:45 m214003 Exp $
+
+SUBROUTINE stepon(pmap,kdpmpf,gauw,cwava,kdpmph,lam,phi,dphi,sinlam,coslam, &
+&      lbasdy,lbasdz,lbassd,lbasiy,detam,detai,dlam,etamid,etaint, &
+&      ub,vb,fb,kftype)
+
+  ! Description:
+  !
+  ! Controls the time step.
+  !
+  ! Method:
+  !
+  ! This subroutine controls the structure of the scanning
+  ! over the latitude lines and of the computations in spectral
+  ! space. It also increments the time step and check for the
+  ! completion of the run.
+  !
+  ! *stepon* is called from *drive*.
+  !
+  ! Externals:
+  ! *scan1sl*   1st scans over gaussian latitudes.
+  ! *scan2*     2nd scan over gaussaina latitudes.
+  ! *hdiff*     horizontal diffusion.
+  ! *scctp*     computations in spectral space for
+  !             temperature and surface pressure equations.
+  ! *sccd*      computations in spectral space for
+  !             divergence equation.
+  !
+  ! Authors:
+  !
+  ! U. Schlese, DKRZ, March 1994, original source
+  ! L. Kornblueh, MPI, May 1998, f90 rewrite
+  ! U. Schulzweida, MPI, May 1998, f90 rewrite
+  ! I. Kirchner, MPI, August 1998, tendency diagnostics, nudging and nmi
+  ! I. Kirchner, MPI, January 1999, add nmi
+  ! L. Kornblueh, MPI, April 1998, added NWP forecast mode
+  ! T. Diehl, DKRZ, July 1999, parallel version
+  ! for more details see file AUTHORS
+  !
+
+  USE mo_memory_sp,     ONLY: stp
+  USE mo_doctor,        ONLY: nout, nin, nerr
+  USE mo_exception,     ONLY: message, finish
+  USE mo_control,       ONLY: dtime, l4ptime, labort, lg4x, lmidatm, lnmi,   &
+                              lnudge, lnwp, lptime, ltdiag, lwmonth, lwtime, &
+                              n4ptime, ncbase, nk, nkp1, nlev, nmend,        &
+                              nptime, nstop, nsub, nsubint, ntbase, nwtime,  &
+                              ngl,nlon,lcouple,imtt  !fu++
+  USE mo_hdiff,         ONLY: dampth, difd, dift, difvo
+  USE mo_hyb,           ONLY: aktlrd, altrcp, rpr
+  USE mo_start_dataset, ONLY: nstart, nstep
+  USE mo_constants,     ONLY: a, dayl
+  USE mo_filename,      ONLY: nhm
+  USE mo_grid,          ONLY: pcnst,plat,platd,plon,plond,plev,plevp1
+  USE mo_parallel_slt,  ONLY: nxpt_a
+  USE mo_midatm,        ONLY: uspnge
+  USE mo_year,          ONLY: cd2dat
+  USE mo_nudging,       ONLY: Nudging, NudgingReadSST, NudgingOut, NudgingRerun
+  USE mo_grib,          ONLY: outsp, set_output_time, open_grib_file, &
+                              close_grib_file, &
+                        flatfx,fsenfx,fsolfx,fradfx,ftaux,ftauy,fwind   !fu++
+  USE mo_diag_tendency, ONLY: DIAG_Init, DIAG_Write, ldinit
+  USE mo_nmi,           ONLY: NMI_Make
+  USE mo_mpi,           ONLY: p_pe, p_io
+  USE mo_decomposition, ONLY: dc=>local_decomposition
+  USE mo_timeint,       ONLY: timeintold
+
+  !fu++start
+  USE mo_io,            ONLY: vlon, vlat
+  USE mo_memory_g3a,    ONLY: slmm, tsm, tsm1m
+  USE mo_landsea,       ONLY: bzone, sstatm, amask, view, viewtop
+  !fu++end
+
+  IMPLICIT NONE
+
+  !  Scalar arguments 
+  REAL :: cwava, dlam
+  INTEGER :: pmap
+
+  !  Array arguments 
+  REAL :: coslam(plon), detai(plevp1), detam(plev), dphi(platd,2), &
+&      etaint(plevp1), etamid(plev), gauw(plat), lam(plond), &
+&      lbasdy(4,2,platd,2), lbasdz(4,2,plev), &
+&      lbasiy(4,2,platd,2), lbassd(4,2,plevp1), phi(platd,2), &
+&      sinlam(plon)
+
+  REAL :: ub(plond,plev,platd,2)
+  REAL :: vb(plond,plev,platd,2)
+  REAL :: fb(plond,plev,pcnst,platd,2)
+
+  !fu++ common block
+  REAL :: runday, dta, dto, day1, tseg, fsflux(nlon,ngl)
+  INTEGER :: numcpl, numatm, numocn
+  CHARACTER*2 fid2(99)
+  CHARACTER*11 filein
+  COMMON /fudate/runday,dta,dto,day1,tseg,numcpl,numatm,numocn
+  !fu++end
+
+  INTEGER :: kdpmpf(pmap), kdpmph(pmap), kftype(pcnst)
+
+  !  Local scalars: 
+  REAL :: zutime, zstime, zrtime, zwtime
+  INTEGER :: id1, id2, iday, idt, ihm, im1, im2, iy, jlev, jsu, nstdamp
+  LOGICAL :: lprint_tmean
+
+  REAL :: tu0, tu1, ts0, ts1
+
+  !  External functions 
+  REAL, EXTERNAL    :: util_walltime
+  INTEGER, EXTERNAL :: util_cputime
+
+  !  External subroutines 
+  EXTERNAL hdiff, helmo, scan1sl, scan2, sccd, scctp, subjob
+
+  !  Intrinsic functions 
+  INTRINSIC INT, MOD
+
+  !fu++ output ocean files
+  DATA fid2/'01','02','03','04','05','06','07','08','09','10',&
+            '11','12','13','14','15','16','17','18','19','20',&
+            '21','22','23','24','25','26','27','28','29','30',&
+            '31','32','33','34','35','36','37','38','39','40',&
+            '41','42','43','44','45','46','47','48','49','50',&
+            '51','52','53','54','55','56','57','58','59','60',&
+            '61','62','63','64','65','66','67','68','69','70',&
+            '71','72','73','74','75','76','77','78','79','80',&
+            '81','82','83','84','85','86','87','88','89','90',&
+            '91','92','93','94','95','96','97','98','99'/
+  !fu++end
+
+  !  Executable statements
+  
+  !fu++start coupled mode?
+
+  IF (lcouple) THEN
+
+  !WRITE(nout,*) 'lon=',vlon(1:nlon)
+  !WRITE(nout,*) 'lat=',vlat(1:ngl)
+  !WRITE(nout,*) 'lat,slm=',ngl/2,slmm(1:nlon,ngl/2)
+
+!==> establish common block "/fudate/"=================>
+  runday=360.                              !one-year
+  dta=dtime                                !second
+  dto=14400.                               !second
+  day1=24.*3600.                           !1 day
+  tseg=1.*day1                             !coupling interval
+!==> total segments for ocean & atmosphere
+  numcpl=int(runday*day1/tseg)
+  numatm=int(tseg/dta)
+  numocn=int(tseg/dto)
+  WRITE(nout,*) 'c****************************************c'
+  WRITE(nout,*) 'coupling segment interval',tseg
+  WRITE(nout,*) 'ATM steps/segment=', numatm
+  WRITE(nout,*) 'OCN steps/segment=', numocn
+  WRITE(nout,*) 'c****************************************c'
+!========================================================>
+  !for deposit ocean outputs
+  !READ(nin,fumon)!
+    iday = ncbase + (ntbase+dtime*(nstep+1))/dayl + 0.01 !input data
+  CALL cd2dat(iday,id1,im1,iy)
+  WRITE(nout,*) 'initial run? imtt=(1,1000),year=',imtt,iy
+  filein='ocean.'//fid2(iy)
+  OPEN(117,file=filein,form='unformatted',&
+     access='sequential')
+!========================================================> 
+  !>>get the coupled land-sea masks for ocean and atmosphere
+
+  CALL amask(slmm,vlat,vlon)
+  !>>set the initial condition for intermediate ocean model
+
+  CALL setupo(imtt)
+  !>>get the initial SST for the AGCM
+  ALLOCATE(sstatm(1:nlon,1:ngl))
+
+  CALL sstint(nlon,ngl,sstatm)
+!========replace atmospheric SST with ocean modeled SST
+  do id1=1,nlon
+   do id2=1,ngl
+     if(bzone(id1,id2).eq.1) then
+     tsm(id1,id2)=sstatm(id1,id2)+273.16
+     tsm1m(id1,id2)=tsm(id1,id2)
+     end if
+   end do
+  end do
+!=======================================================> 
+ END IF 
+  !fu++end
+
+  ! In case of NWP forecast experiments set initial time for GRIB 1 output
+
+  IF (lnwp) THEN
+     CALL set_output_time
+  END IF
+
+  ! allocate nxpt_a
+  ALLOCATE (nxpt_a(plev,platd,2))
+
+  integration_loop: DO
+
+  IF (util_cputime(tu0, ts0) == -1) THEN
+     CALL message('stepon','Cannot determine used CPU time')
+  END IF
+ 
+!-- 1. 2-scan structure
+
+  ! Set switches for postpro and history events
+
+  !old code lptime = MOD( (INT(ntbase/dtime+0.01) + nstep+1),nptime) == 0
+  !fu modified(12/30/99)
+  lptime = MOD(nstep+1,nptime) == 0
+
+  l4ptime = MOD( (INT(ntbase/dtime+0.01) + nstep+1),n4ptime) == 0 .AND. lg4x
+
+  IF (lwmonth) THEN
+     ! last timestep in the months ?
+    iday = ncbase + (ntbase+dtime*(nstep+1))/dayl + 0.01
+    CALL cd2dat(iday,id1,im1,iy)
+
+    iday = ncbase + (ntbase+dtime*(nstep+2))/dayl + 0.01
+    CALL cd2dat(iday,id2,im2,iy)
+
+    if (im1 /= im2 .and. id1 == nmend) then
+       lwtime = .TRUE.
+    ELSE
+       lwtime = .FALSE.
+    END IF
+
+  ELSE
+    lwtime = MOD(nstep+1,nwtime) == 0
+  END IF
+
+  ! Calculates weighting factores for time interpolation
+
+  CALL timeintold
+
+  ! -------------------------------------------------------------------
+  !   Update global SST field for nudging experiments. For first
+  !   timestep, SST is taken from history files, whereas nudging
+  !   fields will have to be read in immediately after model start.
+  ! -------------------------------------------------------------------
+  IF (lnudge)  CALL NudgingReadSST
+
+!-- 1.1 Grid point computations and direct *legendre transforms.
+
+  IF (ltdiag) CALL DIAG_Init(30) ! initialize workspace for diagnostics
+
+  ! First scans over gaussian latitudes
+
+  ! if in NWP mode open new file 
+
+  IF (lnwp .AND. lptime .AND. p_pe == p_io) CALL open_grib_file 
+
+  CALL scan1sl(pmap,kdpmpf,gauw,cwava,kdpmph,lam,phi,dphi,sinlam,coslam, &
+&      lbasdy,lbasdz,lbassd,lbasiy,detam,detai,dlam,etamid,etaint, &
+&      kftype,ub,vb,fb)
+
+!-- 1.2 Completion of divergence calculation
+
+  CALL sccd
+
+!-- 1.3 Completion of temperature and surface pressure equations.
+
+  CALL scctp
+
+!-- 1.4 Upper sponge layer 
+
+  IF (lmidatm) CALL uspnge
+
+!-- 1.5 Horizontal diffusion
+
+  IF (lmidatm) THEN
+    difvo = a*a/(nk*nkp1*3600.*dampth)
+  ELSE
+    nstdamp = INT(dayl/dtime)
+    IF (nstep<=nstdamp) THEN
+      difvo = a*a/(nk*nkp1*3600.*3.)
+    ELSE
+      difvo = a*a/(nk*nkp1*3600.*dampth)
+    END IF
+  END IF
+  difd = 5.*difvo
+  dift = 0.4*difvo
+
+  CALL hdiff
+
+  ! Call nudging after the horizontal diffusion
+
+  IF (lnudge) THEN
+     CALL Nudging
+  ELSE IF (lnmi) THEN
+     CALL NMI_Make(5)
+  END IF
+
+  !fu++start
+  IF(lptime.AND.lcouple) THEN
+   fsflux=flatfx+fsenfx+fsolfx+fradfx
+
+   WRITE(nout,*) 'atmospheric SST at (140W,EQ):', tsm(65,25)-273.16
+   WRITE(nout,*) 'surface heat flux at (140W,EQ):', fsflux(65,25)
+  !run IOM and return SST for AGCM
+  !inputs:lwtime,ftaux,ftauy,fsflux,fsolfx,fwind,nlon,ngl
+  !output:sstatm
+  CALL ocean(lwtime,sstatm,ftaux,ftauy,fsflux,fsolfx,fwind,nlon,ngl)  
+  END IF
+  !fu++end
+
+  ! Postprocessing of spectral data, if necessary close output file
+  IF (lptime) CALL outsp
+  IF (p_pe == p_io) THEN
+     IF (lnwp .AND. lptime) CALL close_grib_file
+  END IF
+
+  ! Postprocessing of nudging data
+  IF (lptime.AND.lnudge) CALL NudgingOut
+
+  IF (ltdiag) THEN
+     ldinit = .FALSE.             ! reset initial switch after first time step
+     IF (lptime) CALL DIAG_Write  ! perform diagnostics output
+  ENDIF
+
+!-- 1.6 Inverse *legendre transforms
+
+  CALL scan2
+
+!-- 2. Continuation of run
+
+!-- 2.1 Recompute matrix *cn* (used to compute divergence
+!       in *sccd*) after the first time-step.
+
+  IF (nstep==nstart) THEN
+    idt = 2
+    CALL helmo(idt)
+
+!-- 2.2 Multiply by 2. arrays *aktlrd* and *altrcp* (used
+!       by *conteq*) and *rpr* after the first time step.
+
+    DO jlev = 1, nlev
+      aktlrd(jlev) = aktlrd(jlev)*2.
+      altrcp(jlev) = altrcp(jlev)*2.
+    END DO
+    rpr = rpr*2.
+
+  END IF
+
+!-- 2.3   Test for end of run
+
+  IF (nstep==nstop) THEN
+
+    WRITE (nout,*) 'Step ', nstep, ' completed.'
+    WRITE (nout,*) 'Experiment finished.'
+    IF (util_cputime(zutime, zstime) == -1) THEN
+       CALL message('stepon','Cannot determine used CPU time')
+    END IF
+    zwtime = util_walltime()
+    zrtime = (zutime+zstime)/zwtime
+    WRITE (nout,'(a,f10.2,a)') ' Wallclock        : ', zwtime, ' s'
+    WRITE (nout,'(a,f10.2,a)') ' CPU-time (user)  : ', zutime, ' s'
+    WRITE (nout,'(a,f10.2,a)') ' CPU-time (system): ', zstime, ' s'
+    WRITE (nout,'(a,f10.2,a)') ' Ratio            : ', 100*zrtime, ' %'
+
+    IF (labort) THEN
+
+      WRITE (nout,*) 'Exit to interrupt rerun-chain.'
+      CALL finish('stepon','Run terminated.')
+    ELSE
+
+      EXIT integration_loop
+
+    END IF
+
+  ELSE IF (lwtime) THEN
+
+     IF (lnudge) CALL NudgingRerun(-1)
+     IF (ltdiag) CALL DIAG_Init(-1)  ! store restart data
+
+    WRITE (nout,*) 'Step ', nstep, ' completed.'
+    WRITE (nout,*) 'Run finished.'
+    IF (util_cputime(zutime, zstime) == -1) THEN
+       CALL message('stepon','Cannot determine used CPU time')
+    END IF
+    zwtime = util_walltime()
+    zrtime = (zutime+zstime)/zwtime
+    WRITE (nout,'(a,f10.2,a)') ' Wallclock        : ', zwtime, ' s'
+    WRITE (nout,'(a,f10.2,a)') ' CPU-time (user)  : ', zutime, ' s'
+    WRITE (nout,'(a,f10.2,a)') ' CPU-time (system): ', zstime, ' s'
+    WRITE (nout,'(a,f10.2,a)') ' Ratio            : ', 100*zrtime, ' %'
+
+    ! Submit jobs
+
+    DO jsu = 1, nsub
+      IF (nsubint(jsu)<0) THEN
+        ihm = nhm - 1
+        IF (ihm<1) ihm = 12
+        IF (MOD(ihm,-nsubint(jsu))==0) THEN
+          CALL subjob(jsu)
+        END IF
+      ELSE
+        IF (MOD(nhm,nsubint(jsu))==0) THEN
+          CALL subjob(jsu)
+        END IF
+      END IF
+    END DO
+
+    EXIT integration_loop
+
+  END IF
+
+  IF (util_cputime(tu1, ts1) == -1) THEN
+     CALL message('stepon','Cannot determine used CPU time')
+  END IF
+
+  lprint_tmean = .false.
+  IF (dc%nsnm0> 0) THEN
+    IF ( dc%snn0(1)==0) lprint_tmean = .true.
+  ENDIF
+  IF (lprint_tmean) THEN  
+    WRITE (nerr,'(a,i4,a,i5,f10.3," s",f22.13)') &
+         ' PE',dc%pe,' stepon: ', nstep, (tu1+ts1)-(tu0+ts0), stp(nlev,1,1)
+  ELSE
+    WRITE (nerr,'(a,i4,a,i5,f10.3," s")') &
+         ' PE',dc%pe,' stepon: ', nstep, (tu1+ts1)-(tu0+ts0)
+  ENDIF
+
+  ! 2.4   Increment time step
+
+  nstep = nstep + 1
+
+  END DO integration_loop
+  close(117)        !fu++
+
+  DEALLOCATE (nxpt_a)
+
+END SUBROUTINE stepon

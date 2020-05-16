@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+set -e
+#
+BIN=../bin
+#
+DPATH=`dirname $1`
+DFILE=`basename $1`
+#
+maketable $DPATH/${DFILE}
+#
+$BIN/tabinfo << EOR
+${DFILE}.tab
+EOR
+#
+RES=`cat tinfo | sed -e "s- --g" | cut -f 1 -d ":"`
+LEV=`cat tinfo | sed -e "s- --g" | cut -f 2 -d ":"`
+#
+rm -f tinfo
+#
+REFERENCE=T${RES}L${LEV}a
+#
+if [ ! -f reference/${REFERENCE}.tab ] ; then
+  echo "reference file for T${RES} with $LEV level not found!"
+  exit 1
+fi
+#
+$BIN/anatab << EOR
+reference/${REFERENCE}.tab
+${DFILE}.tab
+EOR
+#
+exit

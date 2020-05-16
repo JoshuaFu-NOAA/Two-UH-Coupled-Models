@@ -1,0 +1,7 @@
+#resource schedule
+SEGMENT
+TIME 1600h
+NCPUS 16
+MEMORY 6500m
+STATIC
+

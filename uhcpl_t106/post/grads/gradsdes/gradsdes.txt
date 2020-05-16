@@ -1,0 +1,67 @@
+NAME
+
+     gradsdes - creates GrADS descriptor and index files of a GRIB file
+
+SYNOPSIS
+
+     gradsdes  [ -options ]  GRIB-filename
+
+DESCRIPTION
+
+     gradsdes creates GrADS descriptor and index files of a given GRIB file.
+     GrADS can only handle gridded GRIB data. So gradsdes skips data which
+     are not gridded (e.g. spectral data).
+     The program takes "GRIB-filename" in order to create filenames for
+     the descriptor (GRIB-filename.ctl) and the index (GRIB-filename.gmp) file.
+
+     Create an ASCII file with your variables abbreviation and description.
+     This file must contain the codenumber, the abbreviation and description
+     in a blank separatet list.
+
+OPTIONS
+
+     -c[ontrolfile] cfile    descriptor filename
+                             default: -c GRIB-file.ctl
+
+     -C[odesfile] Cfile      variables abbreviation and description
+
+     -g[auss] on/off         turn on/off gaussian grid
+                             default: -g on  for T21, T30, T42, T63, T106, T213 and T319 grids
+                                      -g off for all other grids
+
+     -h[elp]                 give this help
+
+     -i[nputfile] ifile      gribfile
+
+     -I[ncrement] vvkk       time increment
+
+     -m[apfile] mfile        grib map filename
+                             default: -m GRIB-file.gmp
+
+     -T[ime] start-time      the starting date/time value
+
+     -q[uiet]                quiet mode
+
+     -V[ersion]              display version number
+
+     -xydef file             xydef file
+
+     -zdef file              zdef file
+
+     -y[rev] on/off          turn on/off yrev
+                             default: -y on
+ 
+ 
+EXAMPLES
+
+     To use the default settings
+
+       gradsdes gribfile
+
+     creates the descriptor file gribfile.ctl and the index file gribfile.gmp.
+
+
+       gradsdes -C codes gribfile
+
+     reads variables abbreviation and description from file "codes" and
+     write this information in the descriptor file.

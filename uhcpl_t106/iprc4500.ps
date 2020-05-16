@@ -1,0 +1,524 @@
+%!PS-Adobe-1.0
+%%Creator: alala:xfu (Xiouhua Fu,IPRC,POST409J,62629,)
+%%Title: mo_sst.f90
+%%CreationDate: Tue Sep 16 10:48:19 2003
+%%DocumentFonts: Courier-Bold Courier Times-Roman Times-Bold Helvetica-Bold
+% Start of enscript.pro -- prolog for text file translator
+% Copyright (c) 1984,1985,1987 Adobe Systems Incorporated. All Rights Reserved. 
+% GOVERNMENT END USERS: See Notice file in TranScript library directory
+% -- probably /usr/lib/ps/Notice
+% RCSID: $Header: enscript.pro,v 2.2 87/11/17 16:39:56 byron Rel $
+save/EnscriptJob exch def
+/StartEnscriptDoc{$enscript begin}def
+/$enscript 50 dict def $enscript begin
+/EndEnscriptDoc{end}def
+/S/show load def
+/X{exch 0 rmoveto S}def
+/Y{exch 0 exch rmoveto S}def
+/B{3 1 roll moveto S}def
+/F{$fd exch get setfont}def
+/StartPage{/svpg save def .05 dup scale}def
+/EndPage{svpg restore showpage}def
+/DoPreFeed{/statusdict where{pop
+ statusdict/prefeed known{statusdict exch/prefeed exch put 0}if}if pop}def
+/Landscape{90 rotate 0 -15840 translate}def
+/SetUpFonts
+ {dup/$fd exch array def{findfont exch scalefont $fd 3 1 roll put}repeat}def
+/InitGaudy{/TwoColumn exch def /BarLength exch def
+ /ftD /Times-Bold findfont 12 UP scalefont def
+ /ftF /Times-Roman findfont 14 UP scalefont def
+ /ftP /Helvetica-Bold findfont 30 UP scalefont def}def
+/U{1440 mul}def
+/UP{U 72 div}def
+/LB{/pts exch UP def /charcolor exch def /boxcolor exch def /font exch def
+ /label exch def /dy exch def /dx exch def /lly exch def /llx exch def
+ gsave boxcolor setgray
+ llx lly moveto dx 0 rlineto 0 dy rlineto dx neg 0 rlineto closepath fill
+ /lines label length def
+ /yp lly dy add dy lines pts mul sub 2 div sub pts .85 mul sub def
+ font setfont charcolor setgray
+ label {dup stringwidth pop 2 div llx dx 2 div add exch sub yp moveto show
+   /yp yp pts sub def}forall grestore}def
+/Gaudy{/Page exch def /Date exch def /File exch def /Comment exch def
+ .25 U 10.2 U BarLength .1 sub U .25 U [File] ftF .97 0 14 LB
+ .25 U 10.45 U BarLength .1 sub U .25 U [Comment] ftF 1 0 14 LB
+ .25 U 10.2 U 1 U .5 U Date ftD .7 0 12 LB
+ BarLength .75 sub U 10.2 U 1 U .5 U [Page] ftP .7 1 30 LB
+ TwoColumn{BarLength 2 div .19 add U 10.2 U moveto 0 -10 U rlineto stroke}if
+}def
+end
+StartEnscriptDoc % end fixed prolog
+1 200 /Courier-Bold
+0 140 /Courier
+2 SetUpFonts
+10.55 true InitGaudy
+%%EndProlog
+%%Page: ? 1
+StartPage
+Landscape
+()(mo_sst.f90)[(99/11/30)(03:52:27)](1)Gaudy
+0 F
+360 14470(MODULE mo_sst)B
+360 14150(!+ $Id: mo_sst.f90,v 1.23 1999/11/30 13:52:27 m214003 Exp $)B
+528 13830(IMPLICIT NONE)B
+528 13510(REAL, ALLOCATABLE :: sst\(:,:,:\)  ! \(nlon,ngl,0:13\) in global coordinates)B
+528 13350(REAL, ALLOCATABLE :: aice\(:,:,:\) ! \(nlon,ngl,0:13\))B
+360 13030(CONTAINS)B
+528 12710(SUBROUTINE readsst)B
+696 12390(! U. Schlese, DKRZ,  May 1993, original version)B
+696 12230(! U. Schulzweida, MPI, May 1999, netCDF version)B
+696 11910(USE mo_start_dataset, ONLY: nist)B
+696 11750(USE mo_doctor,        ONLY: nout)B
+696 11590(USE mo_control,       ONLY: lamip)B
+696 11430(USE mo_exception,     ONLY: finish)B
+696 11270(USE mo_mpi,           ONLY: p_pe, p_io   )B
+696 11110(USE mo_decomposition, ONLY: lc => local_decomposition, global_decomposition)B
+696 10950(USE mo_transpose,     ONLY: scatter_gp)B
+696 10790(USE mo_filename,      ONLY: nhy)B
+696 10630(USE mo_io,            ONLY: sstnc0, sstnc1, sstnc2, io_read, io_open,  &)B
+3048 10470(io_close, io_open_unit, io_get_var_double, &)B
+3048 10310(io_get_vara_double, io_inq_varid)B
+696 9990(REAL, ALLOCATABLE, TARGET :: zin\(:,:,:\))B
+696 9830(REAL, POINTER :: gl_sst\(:,:,:\))B
+696 9510(CHARACTER \(7\) :: fn0, fn1, fn2)B
+696 9350(LOGICAL       :: lex, lex0, lex1, lex2)B
+696 9190(INTEGER       :: start\(3\), count\(3\), nvarid)B
+696 9030(INTEGER       :: i, nhy0, nhy1, nhy2)B
+696 8710(nhy0 = nhy - 1)B
+696 8550(nhy1 = nhy)B
+696 8390(nhy2 = nhy + 1)B
+696 8070(! Allocate memory for sst per PE)B
+696 7750(ALLOCATE \(sst\(lc%nglon, lc%nglat, 0:13\)\))B
+696 7430(IF \(p_pe == p_io\) THEN)B
+864 7110(IF \(nhy < 100\) THEN)B
+1032 6950(WRITE \(fn0, '\("sst",i2.2\)'\) nhy0)B
+1032 6790(WRITE \(fn1, '\("sst",i2.2\)'\) nhy1)B
+1032 6630(IF\(nhy/= 99\) THEN)B
+1200 6470(WRITE \(fn2, '\("sst",i2.2\)'\) nhy2)B
+1032 6310(ELSE)B
+1200 6150(WRITE \(fn2, '\("sst",i3\)'\) nhy2)B
+1032 5990(ENDIF)B
+864 5830(ELSE IF \(nhy< 1000\) THEN)B
+1032 5670(IF \(nhy/= 100\) THEN)B
+1200 5510(WRITE \(fn0, '\("sst",i3\)'\) nhy0)B
+1032 5350(ELSE)B
+1200 5190(WRITE \(fn0, '\("sst",i2.2\)'\) nhy0)B
+1032 5030(ENDIF)B
+1200 4870(WRITE \(fn1, '\("sst",i3\)'\) nhy1)B
+1032 4710(IF\(nhy/= 999\) THEN)B
+1200 4550(WRITE \(fn2, '\("sst",i3\)'\) nhy2)B
+1032 4390(ELSE)B
+8760 14470(WRITE \(fn2, '\("sst",i4\)'\) nhy2)B
+8592 14310(ENDIF)B
+8424 14150(ELSE)B
+8592 13990(IF\(nhy/= 1000\) THEN)B
+8760 13830(WRITE \(fn0, '\("sst",i4\)'\) nhy0)B
+8592 13670(ELSE)B
+8760 13510(WRITE \(fn0, '\("sst",i3\)'\) nhy0)B
+8592 13350(ENDIF)B
+8760 13190(WRITE \(fn1, '\("sst",i4\)'\) nhy1)B
+8760 13030(WRITE \(fn2, '\("sst",i4\)'\) nhy2)B
+8424 12870(ENDIF)B
+8424 12550(WRITE \(nout, '\(/\)'\))B
+8424 12230(! Amip-type:)B
+8424 11910(IF\(lamip\) THEN)B
+8592 11750(WRITE \(nout,*\)  'This is an AMIP run \(lamip = .true.\).')B
+8592 11590(INQUIRE \(file=fn0, exist=lex0\))B
+8592 11430(INQUIRE \(file=fn1, exist=lex1\))B
+8592 11270(INQUIRE \(file=fn2, exist=lex2\))B
+8592 11110(IF \(lex1\) THEN)B
+8760 10950(CALL IO_open \(fn1, sstnc1, IO_READ\))B
+8760 10790(WRITE \(nout,*\) 'Reading sst from files ',fn0, ', ',fn1,', ',fn2)B
+8760 10630(IF\(lex0\) THEN)B
+8928 10470(CALL IO_open \(fn0, sstnc0, IO_READ\))B
+8760 10310(ELSE)B
+8928 10150(WRITE \(nout,*\) 'Could not open file <',fn0,'>')B
+8928 9990(CALL finish \('readsst', 'run terminated.'\))B
+8760 9830(ENDIF)B
+8760 9670(IF\(lex2\) THEN)B
+8928 9510(CALL IO_open \(fn2, sstnc2, IO_READ\))B
+8760 9350(ELSE)B
+8928 9190(WRITE \(nout,*\) 'Could not open file <',fn2,'>')B
+8928 9030(CALL finish \('readsst', 'run terminated.'\))B
+8760 8870(ENDIF)B
+8592 8710(ELSE)B
+8760 8550(WRITE \(nout,*\) 'Could not open file <',fn1,'>')B
+8760 8390(CALL finish \('readsst', 'run terminated.'\))B
+8592 8230(ENDIF)B
+8424 8070(ELSE)B
+8592 7910(WRITE \(nout,*\)  'This is no AMIP run \(lamip = .false.\).')B
+8592 7750(INQUIRE \(nist, exist=lex\))B
+8592 7590(IF \(lex\) THEN)B
+8760 7430(CALL IO_open_unit \(nist, sstnc1, IO_READ\))B
+8592 7270(ELSE)B
+8760 7110(WRITE \(nout,*\) 'Could not open sst file')B
+8760 6950(CALL finish \('readsst', 'run terminated.'\))B
+8592 6790(ENDIF)B
+8424 6630(ENDIF)B
+8424 6310(! Read sst-file)B
+8424 5990(! Allocate memory for sst global fields)B
+8424 5670(ALLOCATE \(zin\(lc%nlon, lc%nlat, 0:13\)\))B
+8424 5350(CALL IO_INQ_VARID \(sstnc1%nc_file_id, 'sst', nvarid\))B
+8424 5190(CALL IO_GET_VAR_DOUBLE \(sstnc1%nc_file_id, nvarid, zin\(:,:,1:12\)\))B
+8424 4870(IF\(.NOT.lamip\) THEN)B
+8592 4710(zin\(:,:,0\)  = zin\(:,:,12\))B
+8592 4550(zin\(:,:,13\) = zin\(:,:,1\))B
+8424 4390(ELSE )B
+EndPage
+%%Page: ? 2
+StartPage
+Landscape
+()(mo_sst.f90)[(99/11/30)(03:52:27)](2)Gaudy
+0 F
+1032 14470(CALL IO_INQ_VARID \(sstnc0%nc_file_id, 'sst', nvarid\))B
+1032 14310(count\(:\) = \(/ lc%nlon, lc%nlat, 1 /\))B
+1032 14150(start\(:\) = \(/ 1, 1, 12 /\))B
+1032 13990(CALL IO_GET_VARA_DOUBLE \(sstnc0%nc_file_id,nvarid,start,count,zin\(1,1,0\)\))B
+1032 13670(CALL IO_INQ_VARID \(sstnc2%nc_file_id, 'sst', nvarid\))B
+1032 13510(count\(:\) = \(/ lc%nlon, lc%nlat, 1 /\))B
+1032 13350(start\(:\) = \(/ 1, 1, 1 /\))B
+1032 13190(CALL IO_GET_VARA_DOUBLE \(sstnc2%nc_file_id,nvarid,start,count,zin\(1,1,13\)\))B
+864 13030(END IF)B
+696 12870(END IF)B
+696 12550(NULLIFY \(gl_sst\))B
+696 12390(DO i = 0, 13)B
+864 12230(IF \(p_pe == p_io\) gl_sst => zin\(:,:,i:i\))B
+864 12070(CALL scatter_gp \(gl_sst, sst\(:,:,i:i\), global_decomposition\))B
+696 11910(END DO)B
+696 11590(IF \(p_pe == p_io\) THEN)B
+864 11270(DEALLOCATE \(zin\))B
+864 10950(!    Close file\(s\))B
+864 10630(CALL IO_close\(sstnc1\))B
+864 10310(IF\(lamip\) THEN)B
+1032 10150(CALL IO_close\(sstnc0\))B
+1032 9990(CALL IO_close\(sstnc2\))B
+864 9830(ENDIF)B
+696 9510(ENDIF)B
+528 9190(END SUBROUTINE readsst)B
+528 8870(SUBROUTINE readice)B
+696 8550(! U. Schlese, DKRZ,  July 1998, original version \(based on opensst\))B
+696 8390(! U. Schulzweida, MPI, Sep 1999, netCDF version)B
+696 8070(USE mo_start_dataset, ONLY: nice)B
+696 7910(USE mo_doctor,        ONLY: nout)B
+696 7750(USE mo_control,       ONLY: lamip)B
+696 7590(USE mo_exception,     ONLY: finish)B
+696 7430(USE mo_mpi,           ONLY: p_pe, p_io   )B
+696 7270(USE mo_decomposition, ONLY: lc => local_decomposition, global_decomposition)B
+696 7110(USE mo_transpose,     ONLY: scatter_gp)B
+696 6950(USE mo_filename,      ONLY: nhy)B
+696 6790(USE mo_io,            ONLY: sicnc0, sicnc1, sicnc2, io_read, io_open,  &)B
+3048 6630(io_close, io_open_unit, io_get_var_double, &)B
+3048 6470(io_get_vara_double, io_inq_varid)B
+696 6150(REAL, ALLOCATABLE, TARGET :: zin\(:,:,:\))B
+696 5990(REAL, POINTER :: gl_ice\(:,:,:\))B
+696 5670(CHARACTER \(7\) :: fn0, fn1, fn2)B
+696 5510(LOGICAL       :: lex, lex0, lex1, lex2)B
+696 5350(INTEGER       :: start\(3\), count\(3\), nvarid)B
+696 5190(INTEGER       :: i, nhy0, nhy1, nhy2)B
+696 4870(nhy0  = nhy - 1)B
+696 4710(nhy1  = nhy)B
+696 4550(nhy2  = nhy + 1)B
+8256 14470(!     Allocate memory for ice per PE)B
+8256 14150(ALLOCATE \(aice\(lc%nglon, lc%nglat, 0:13\)\))B
+8256 13830(IF \(p_pe == p_io\) THEN)B
+8424 13510(IF\(nhy < 100\) THEN)B
+8592 13350(WRITE \(fn0,'\("ice",i2.2\)'\) nhy0)B
+8592 13190(WRITE \(fn1,'\("ice",i2.2\)'\) nhy1)B
+8592 13030(IF\(nhy /= 99\) THEN)B
+8760 12870(WRITE \(fn2,'\("ice",i2.2\)'\) nhy2)B
+8592 12710(ELSE)B
+8760 12550(WRITE \(fn2,'\("ice",i3\)'\) nhy2)B
+8592 12390(ENDIF)B
+8424 12230(ELSEIF\(nhy < 1000\) THEN)B
+8592 12070(IF\(nhy /= 100\) THEN)B
+8760 11910(WRITE \(fn0,'\("ice",i3\)'\) nhy0)B
+8592 11750(ELSE)B
+8760 11590(WRITE \(fn0,'\("ice",i2.2\)'\) nhy0)B
+8592 11430(ENDIF)B
+8592 11270(WRITE \(fn1,'\("ice",i3\)'\) nhy1)B
+8592 11110(IF\(nhy /= 999\) THEN)B
+8760 10950(WRITE \(fn2,'\("ice",i3\)'\) nhy2)B
+8592 10790(ELSE)B
+8760 10630(WRITE \(fn2,'\("ice",i4\)'\) nhy2)B
+8592 10470(ENDIF)B
+8424 10310(ELSE)B
+8592 10150(IF\(nhy /= 1000\) THEN)B
+8760 9990(WRITE \(fn0,'\("ice",i4\)'\) nhy0)B
+8592 9830(ELSE)B
+8760 9670(WRITE \(fn0,'\("ice",i3\)'\) nhy0)B
+8592 9510(ENDIF)B
+8592 9350(WRITE \(fn1,'\("ice",i4\)'\) nhy1)B
+8592 9190(WRITE \(fn2,'\("ice",i4\)'\) nhy2)B
+8424 9030(ENDIF)B
+8424 8710(WRITE \(nout, '\(/\)'\))B
+8424 8390(! Amip-type:)B
+8424 8070(IF\(lamip\) THEN)B
+8592 7910(! WRITE \(nout,*\)  'This is an AMIP run \(lamip = .true.\).')B
+8592 7750(INQUIRE\(file=fn0,exist=lex0\))B
+8592 7590(INQUIRE\(file=fn1,exist=lex1\))B
+8592 7430(INQUIRE\(file=fn2,exist=lex2\))B
+8592 7270(IF \(lex1\) THEN)B
+8760 7110(CALL IO_open\(fn1, sicnc1, IO_READ\))B
+8760 6950(WRITE \(nout,*\) 'Reading ice from files ',fn0, ', ',fn1,', ',fn2)B
+8760 6790(IF\(lex0\) THEN)B
+8928 6630(CALL IO_open\(fn0, sicnc0, IO_READ\))B
+8760 6470(ELSE)B
+8928 6310(WRITE \(nout,*\) 'Could not open file <',fn0,'>')B
+8928 6150(CALL finish \('readice', 'run terminated.'\))B
+8760 5990(ENDIF)B
+8760 5830(IF\(lex2\) THEN)B
+8928 5670(CALL IO_open\(fn2, sicnc2, IO_READ\))B
+8760 5510(ELSE)B
+8928 5350(WRITE \(nout,*\) 'Could not open file <',fn2,'>')B
+8928 5190(CALL finish \('readice', 'run terminated.'\))B
+8760 5030(ENDIF)B
+8592 4870(ELSE)B
+8760 4710(WRITE \(nout,*\) 'Could not open file <',fn1,'>')B
+8760 4550(CALL finish \('readice', 'run terminated.'\))B
+8592 4390(ENDIF)B
+EndPage
+%%Page: ? 3
+StartPage
+Landscape
+()(mo_sst.f90)[(99/11/30)(03:52:27)](3)Gaudy
+0 F
+864 14470(ELSE)B
+1032 14310(! WRITE \(nout,*\)  'This is no AMIP run \(lamip = .false.\).')B
+1032 14150(INQUIRE\(nice,exist=lex\))B
+1032 13990(IF \(lex\) THEN)B
+1200 13830(CALL IO_open_unit\(nice, sicnc1, IO_READ\))B
+1032 13670(ELSE)B
+1200 13510(WRITE \(nout,*\) 'Could not open ice file')B
+1200 13350(CALL finish \('readice', 'run terminated.'\))B
+1032 13190(ENDIF)B
+864 13030(ENDIF)B
+864 12550(! Read ice-file)B
+864 12230(! Allocate memory for sst global fields)B
+864 11910(ALLOCATE \(zin\(lc%nlon, lc%nlat, 0:13\)\))B
+864 11590(CALL IO_INQ_VARID \(sicnc1%nc_file_id, 'sic', nvarid\))B
+864 11430(CALL IO_GET_VAR_DOUBLE \(sicnc1%nc_file_id, nvarid, zin\(:,:,1:12\)\))B
+864 11110(IF\(.NOT.lamip\) THEN)B
+1032 10950(zin\(:,:,0\)  = zin\(:,:,12\))B
+1032 10790(zin\(:,:,13\) = zin\(:,:,1\))B
+864 10630(ELSE )B
+1032 10470(CALL IO_INQ_VARID \(sicnc0%nc_file_id, 'sic', nvarid\))B
+1032 10310(count\(:\) = \(/ lc%nlon, lc%nlat, 1 /\))B
+1032 10150(start\(:\) = \(/ 1, 1, 12 /\))B
+1032 9990(CALL IO_GET_VARA_DOUBLE \(sicnc0%nc_file_id,nvarid,start,count,zin\(1,1,0\)\))B
+1032 9670(CALL IO_INQ_VARID \(sicnc2%nc_file_id, 'sic', nvarid\))B
+1032 9510(count\(:\) = \(/ lc%nlon, lc%nlat, 1 /\))B
+1032 9350(start\(:\) = \(/ 1, 1, 1 /\))B
+1032 9190(CALL IO_GET_VARA_DOUBLE \(sicnc2%nc_file_id,nvarid,start,count,zin\(1,1,13\)\))B
+864 9030(ENDIF)B
+696 8870(END IF)B
+696 8550(nullify \(gl_ice\))B
+696 8390(DO i = 0, 13)B
+864 8230(IF \(p_pe == p_io\) gl_ice => zin\(:,:,i:i\))B
+864 8070(CALL scatter_gp \(gl_ice, aice\(:,:,i:i\), global_decomposition\))B
+696 7910(END DO)B
+696 7590(IF \(p_pe == p_io\) THEN)B
+864 7270(DEALLOCATE \(zin\))B
+864 6950(!    Close file\(s\))B
+864 6630(CALL IO_close\(sicnc1\))B
+864 6470(IF\(lamip\) THEN)B
+1032 6310(CALL IO_close\(sicnc0\))B
+1032 6150(CALL IO_close\(sicnc2\))B
+864 5990(ENDIF)B
+696 5670(END IF)B
+528 5350(END SUBROUTINE readice)B
+528 5030(SUBROUTINE clsst)B
+696 4710(! Description:)B
+696 4550(!)B
+696 4390(! Interpolates SST in time)B
+8256 14470(!)B
+8256 14310(! Method:)B
+8256 14150(!)B
+8256 13990(! This subroutine calculates the sea-surface-temperatures for)B
+8256 13830(! each time step and updates tsm and tsm1m.)B
+8256 13670(!)B
+8256 13510(! *clsst* is called from *gpc*.)B
+8256 13350(!)B
+8256 13190(! Authors: )B
+8256 13030(!)B
+8256 12870(! U. Schlese, DKRZ, January 1993, original source)B
+8256 12710(! L. Kornblueh, MPI, May 1998, f90 rewrite)B
+8256 12550(! U. Schulzweida, MPI, May 1998, f90 rewrite)B
+8256 12390(! )B
+8256 12230(! for more details see file AUTHORS)B
+8256 12070(!)B
+8256 11750(USE mo_memory_g3a,    ONLY: auxil1m, auxil2m, slmm, tsm, tsm1m, geospm)B
+8256 11590(USE mo_control,       ONLY: nrow, lsstadj)B
+8256 11430(USE mo_start_dataset, ONLY: nstart, nstep)B
+8256 11270(USE mo_physc2,        ONLY: ctfreez)B
+8256 11110(USE mo_constants,     ONLY: g)B
+8256 10950(USE mo_rad_switches,  ONLY: nmonth)B
+8256 10790(USE mo_decomposition, ONLY: dc=>local_decomposition)B
+8256 10630(USE mo_timeint,       ONLY: wgt1, wgt2, nmw1, nmw2)B
+8256 10310(!  Local scalars: )B
+8256 10150(REAL    :: zcor, zdt, zgam, zts)B
+8256 9990(INTEGER :: im, jrow, jn, nglon)B
+8256 9670(!  Intrinsic functions )B
+8256 9510(INTRINSIC MAX)B
+8256 9030(!  Executable Statements )B
+8256 8710(jrow  = nrow\(2\))B
+8256 8550(nglon = dc%nglon )B
+8256 8230(! Update temperatures)B
+8256 7910(! Annual cycle)B
+8256 7590(IF \(nmonth == 0\) THEN)B
+8508 7270(! Interpolation in time)B
+8508 6950(zdt = 0.01)B
+8508 6790(DO jn = 1, nglon)B
+8760 6630(zts = wgt1*sst\(jn,jrow,nmw1\) + wgt2*sst\(jn,jrow,nmw2\))B
+8760 6470(IF \(slmm\(jn,jrow\) <= 0.5\) THEN)B
+9012 6310(IF \(sst\(jn,jrow,nmw1\) <= ctfreez\) THEN)B
+9264 6150(tsm\(jn,jrow\)   = MIN\(zts,ctfreez-zdt\))B
+9264 5990(tsm1m\(jn,jrow\) = tsm\(jn,jrow\))B
+9012 5830(ELSE)B
+9264 5670(tsm\(jn,jrow\)   = MAX\(zts,ctfreez+zdt\))B
+9264 5510(tsm1m\(jn,jrow\) = tsm\(jn,jrow\))B
+9012 5350(END IF)B
+8760 5190(END IF)B
+8508 5030(END DO)B
+8256 4710(ELSE)B
+8508 4390(! Perpetual month)B
+EndPage
+%%Page: ? 4
+StartPage
+Landscape
+()(mo_sst.f90)[(99/11/30)(03:52:27)](4)Gaudy
+0 F
+948 14310(im = nmonth)B
+948 14150(DO jn = 1, nglon)B
+1200 13990(IF \(slmm\(jn,jrow\) <= 0.5\) THEN)B
+1452 13830(tsm\(jn,jrow\)   = sst\(jn,jrow,im\))B
+1452 13670(tsm1m\(jn,jrow\) = tsm\(jn,jrow\))B
+1200 13510(END IF)B
+948 13350(END DO)B
+696 13030(END IF)B
+696 12710(! Adjust sst to sea surface "orography".)B
+696 12390(IF \(lsstadj\) THEN)B
+948 12230(! Lapse rate:)B
+948 12070(zgam = 1./100.)B
+948 11910(zcor = zgam/g)B
+948 11590(DO jn = 1, nglon)B
+1200 11430(IF \(slmm\(jn,jrow\) < 0.5 .AND. tsm\(jn,jrow\) > ctfreez\) THEN)B
+1452 11270(tsm\(jn,jrow\)   = tsm\(jn,jrow\) - geospm\(jn,jrow\)*zcor)B
+1452 11110(tsm1m\(jn,jrow\) = tsm\(jn,jrow\))B
+1200 10950(END IF)B
+948 10790(END DO)B
+696 10630(END IF)B
+696 10310(! Initialisation of seaice skin-temperature)B
+696 9990(IF \(nstep == nstart\) THEN)B
+948 9670(auxil1m\(:,jrow\) = tsm\(:,jrow\))B
+948 9510(auxil2m\(:,jrow\) = tsm\(:,jrow\))B
+696 9190(END IF)B
+696 8870(RETURN)B
+528 8710(END SUBROUTINE clsst)B
+528 8390(SUBROUTINE clsst2)B
+696 8070(! Description:)B
+696 7910(!)B
+696 7750(! Interpolates SST and sea-ice in time \(for AMIP2\))B
+696 7590(! Including adjustment for new calendar)B
+696 7430(!)B
+696 7270(! Method:)B
+696 7110(!)B
+696 6950(! This subroutine calculates the sea-surface-temperatures and)B
+696 6790(! sea ice cover for each time step )B
+696 6630(! and updates tsm, tsm1m and seaice, seaicem.)B
+696 6470(!)B
+696 6310(! *clsst2* is called from *gpc*.)B
+696 6150(!)B
+696 5990(! Authors: )B
+696 5830(!)B
+696 5670(! U. Schlese, DKRZ, July 1998, original source)B
+696 5510(! U. Schulzweida, MPI, October 1999, f90 rewrite)B
+696 5350(!)B
+696 5030(USE mo_memory_g3a,    ONLY: geospm, tsm, tsm1m, auxil1m, auxil2m, &)B
+3048 4870(slmm, seaicem)B
+696 4710(USE mo_memory_g3b,    ONLY: seaice)B
+696 4550(USE mo_control,       ONLY: nrow, lsstadj)B
+696 4390(USE mo_start_dataset, ONLY: nstart, nstep)B
+8256 14470(USE mo_physc2,        ONLY: ctfreez)B
+8256 14310(USE mo_constants,     ONLY: g)B
+8256 14150(USE mo_rad_switches,  ONLY: nmonth)B
+8256 13990(USE mo_decomposition, ONLY: dc=>local_decomposition)B
+8256 13830(USE mo_timeint,       ONLY: wgt1, wgt2, nmw1, nmw2)B
+8256 13510(! Local scalars: )B
+8256 13350(REAL    :: zcor, zdt, zgam, zic, zts)B
+8256 13190(INTEGER :: im, jrow, jn, nglon)B
+8256 12870(!  Intrinsic functions)B
+8256 12710(INTRINSIC MAX)B
+8256 12230(!  Executable Statements )B
+8256 11910(jrow  = nrow\(2\))B
+8256 11750(nglon = dc%nglon)B
+8256 11430(zdt   = 0.01)B
+8256 11110(! Update temperatures and ice)B
+8256 10790(! Annual cycle)B
+8256 10470(IF \(nmonth == 0\) THEN)B
+8508 10150(! Interpolation in time)B
+8508 9830(DO jn = 1, nglon)B
+8760 9670(zts = wgt1* sst\(jn,jrow,nmw1\) + wgt2* sst\(jn,jrow,nmw2\))B
+8760 9510(zic = wgt1*aice\(jn,jrow,nmw1\) + wgt2*aice\(jn,jrow,nmw2\))B
+8760 9350(IF \(slmm\(jn,jrow\) <= 0.5\) THEN)B
+9012 9190(IF \(zic < 50.\) THEN)B
+9264 9030(seaice\(jn,jrow\)  = 0.)B
+9264 8870(seaicem\(jn,jrow\) = 0.)B
+9264 8710(tsm\(jn,jrow\)   = MAX\(zts,ctfreez+zdt\))B
+9264 8550(tsm1m\(jn,jrow\) = tsm\(jn,jrow\))B
+9012 8390(ELSE)B
+9264 8230(seaice\(jn,jrow\)  = 1.)B
+9264 8070(seaicem\(jn,jrow\) = 1.)B
+9264 7910(tsm\(jn,jrow\)   = ctfreez-zdt)B
+9264 7750(tsm1m\(jn,jrow\) = tsm\(jn,jrow\))B
+9012 7590(END IF)B
+8760 7430(END IF)B
+8508 7270(END DO)B
+8256 6950(ELSE)B
+8508 6630(! Perpetual month)B
+8508 6310(im = nmonth)B
+8508 6150(DO jn = 1, nglon)B
+8760 5990(IF \(slmm\(jn,jrow\) <= 0.5\) THEN)B
+9012 5830(IF \(aice\(jn,jrow,im\) < 50.\) THEN)B
+9264 5670(seaice\(jn,jrow\)  = 0.)B
+9264 5510(seaicem\(jn,jrow\) = 0.)B
+9264 5350(tsm\(jn,jrow\)     = MAX\(sst\(jn,jrow,im\),ctfreez+zdt\))B
+9264 5190(tsm1m\(jn,jrow\)   = tsm\(jn,jrow\))B
+9012 5030(ELSE)B
+9264 4870(seaice\(jn,jrow\)  = 1.)B
+9264 4710(seaicem\(jn,jrow\) = 1.)B
+9264 4550(tsm\(jn,jrow\)     = ctfreez-zdt)B
+9264 4390(tsm1m\(jn,jrow\)   = tsm\(jn,jrow\))B
+EndPage
+%%Page: ? 5
+StartPage
+Landscape
+()(mo_sst.f90)[(99/11/30)(03:52:27)](5)Gaudy
+0 F
+1452 14470(ENDIF)B
+1200 14310(ENDIF)B
+948 14150(END DO)B
+696 13830(END IF)B
+696 13510(! Adjust SST to sea surface "orography".)B
+696 13190(IF \(lsstadj\) THEN)B
+948 13030(! Lapse rate:)B
+948 12870(zgam = 1./100.)B
+948 12710(zcor = zgam/g)B
+948 12390(DO jn = 1, nglon)B
+1200 12230(IF \(slmm\(jn,jrow\) < 0.5 .AND. tsm\(jn,jrow\) > ctfreez\) THEN)B
+1452 12070(tsm\(jn,jrow\)   = tsm\(jn,jrow\) - geospm\(jn,jrow\)*zcor)B
+1452 11910(tsm1m\(jn,jrow\) = tsm\(jn,jrow\))B
+1200 11750(END IF)B
+948 11590(END DO)B
+696 11430(END IF)B
+696 11110(! Initialisation of seaice skin-temperature)B
+696 10790(IF \(nstep == nstart\) THEN)B
+948 10470(auxil1m\(:,jrow\) = tsm\(:,jrow\))B
+948 10310(auxil2m\(:,jrow\) = tsm\(:,jrow\))B
+696 9990(END IF)B
+696 9670(RETURN)B
+528 9510(END SUBROUTINE clsst2)B
+360 9190(END MODULE mo_sst)B
+EndPage
+%%Trailer
+EndEnscriptDoc
+EnscriptJob restore

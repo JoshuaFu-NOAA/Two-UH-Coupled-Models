@@ -1,0 +1,28 @@
+# Intel IA64/Linux
+#
+ARCH       = LINUX
+
+#F90      = efc
+#FFLAGS   = -O3 -mp1 -tpp1  
+#F90FLAGS = -O3 -mp1 -tpp1 -r8 -fpp
+
+F90      = /usr/mpi/pgi/mvapich2-1.7/bin/mpif90
+FFLAGS   = -O
+F90FLAGS = -O -DpgiFortran -r8 -Mmpi -Mpreprocess -Mbyteswapio
+
+LIBS     = -L../lib -lsupport -llapack -lblas
+SRCDIRS  = lapack blas
+
+MPIROOT    = /usr/mpi/pgi/mvapich2-1.7
+MPI_LIB    = 
+
+NETCDFROOT = /home/xfu/bin/netcdf-413
+
+CC       = gcc
+CFLAGS   = -O -DpgiFortran
+
+DEFOPT   = -D
+MODOPT   = -I
+
+
+

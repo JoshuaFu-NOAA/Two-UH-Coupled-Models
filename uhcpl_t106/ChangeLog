@@ -1,0 +1,512 @@
+<HTML>
+<HEAD>
+<TITLE>echam4 f90 news</TITLE>
+</HEAD>
+<BODY>
+<H1>echam4 f90 changes </H1> 
+
+<pre>
+
+#cvs tag version-6-02
+#cvs status -v
+
+07/09/2005 : version-6-02-1 (I.Kirchner)
+   - update nudging, tendency diagnostics, nmi
+   - use configuration from echam5 
+
+25/02/2003 : version-6-02
+   - suslt:  bug fix for T106 and NCPUS > 1 (Thomas Diehl and Jingjia Luo)
+   - confp3: bug fix
+	
+19/12/2002 : version-6-01
+
+   - cuflx.f90: bug fix itop
+   - mo_grid.f90: joverlap = 3
+   - mo_transpose.f90: add scatter_gp2
+   - trjgl.f90: bug fix phip test
+   - fix bugs in tracer handling:
+ 	1.) LPPXT = .false.
+	2.) use more tracer after restart
+     changed files: mo_grib, mo_io, mo_tracer, iorestart
+
+19/09/2000 : version-6-00
+   - HITACHI support
+   - m_cond: bug fix AMIP2 update <- wrong results !!!
+   - optimize performance of AMIP2 update
+   - AMIP2 update:
+     - changed files:
+        - include: runctl.inc, sdsctl.inc
+        - modules: mo_control, mo_convect_tables, mo_cumulus_flux,
+	           mo_hyb, mo_io, mo_nudging, mo_physc2, mo_radint,
+	           mo_start_dataset
+	- src: control, cuasc, cuflx, cumastr, gpc, gwdrag, ice, inictl,
+	       iniphy, inipost, ioinitial, labrun, lwc, lwvb, m_cond,
+	       m_cucall, m_radheat, m_skintem, m_surf, m_vdiff, physc, 
+	       prerad, radint, radlsw, savehis3, scan1sl, statp,
+	       stepon, suradi
+     - new files:
+	- modules: mo_ozone, mo_soil_impl
+	- src : orbit2
+
+14/09/2000 : version-3-25
+   - GRIB code bug fix: codegb5.c
+   - optimize lookuptable error handling: cuadjtq, cuasc,
+	m_cond, m_cond5, m_cucall, m_surf, m_vdiff, radint
+	
+23/08/2000 : version-3-24
+   - table format: change header time record from HH -> HHMM
+   - codegb5: remove decfp, confp
+   - lookuptable error handling:
+	mo_convect_tables, cuadjtq, m_cond, m_cond5, m_cucall, 
+	m_vdiff, radint
+   - mo_machine: bug fix (dd = 0.0_sp)
+   - mo_grib: bug since new timecontrol (3.02) for nptime < 0
+	use time_inc_sec instead of nptime directly now
+   - gwdrag: use EXPHF and SQRTHF
+   - column: mo_column,stepon
+	
+05/06/2000 : version-3-23
+   - changed files [Ingo Kirchner]: 
+	ndgctl.inc, mo_nudging_buffer, mo_nudging, mo_nmi, mo_diag_tendency,
+	control, dyn, hdiff, inictl, m_radheat, physc, si1, si2, stepon,
+	scan1sl, tf1, tf2
+   - changed files [Andrea Rhodin]:
+	mo_decomposition, mo_io, hdiff
+
+25/04/2000 : version-3-22
+   - changed files: gwdrag, mo_io, mo_grib, mo_memory_g3a, 
+	mo_memory_g3b, mo_midatm, mo_transpose
+	
+11/04/2000 : version-3-21
+   - changed files: gwdrag, ioinitial, subjob, stepon, mo_grib,
+	mo_exception, codegb5, inictl, mo_midatm, mo_column,
+	mo_mpi,
+	m_vdiff.f90.bjorn, m_vdiff.f90
+
+05/04/2000 : version-3-20  (grib)
+   - grib output is now compatible with the EMOS library
+      - changed files: codegb5.c, mo_grib
+   - changed files: inictl, init_decomposition, ioinitial,
+	scan1sl, scan2, mo_column, mo_control, mo_io, columnctl
+
+23/03/2000 : version-3-10  (gwdrag)
+   - use unpacked orographic variances
+      - m_gwdrag; renamed to gwdrag
+      - changed files: mo_io, mo_memory_g3a, mo_memory_g3b,
+	               mo_midatm, ioinitial, physc, gwdrag
+   - changed files: mo_column, columnctl
+	
+21/03/2000 : version-3-04  ()
+   - fixed bug in slt: mo_grid, sltini, herxin, bandij (Andreas)
+   - tf1n: renamed to tf1
+   - tf2n: renamed to tf2
+   - mo_source: moved to mo_tracer
+   - reademi: moved to mo_tracer
+   - initialise: renamed to initialize
+   - USE ONLY: sltfill, suslt, reademi, labrun
+   - changed files: columnctl, mo_column, mo_legendre, mo_midatm
+	sufix, slt2, si1, scan1sl, ioinitial, iorestart, init_memory,
+	control, mo_tracer, mo_scan_buffer, mo_io, mo_netCDF,
+	physc, m_vdiff
+	
+14/02/2000 : version-3-03  (optimize)
+   - Optimization
+      - lti: change dgemv to dgemm
+      - ltd: change dgemv to dgemm
+      - sym1: change loop over nlev to loop over nmp1
+      - m_cond: OCL NOFMADD for vpp5000
+      - mo_midatm: use lerror for Do loop with WRITE statement
+      - changed files : mo_legendre
+   - read netCDF restart files before 3.02 with -lg3setzero and -lg3force
+     - changed files: sdsctl, mo_io, mo_start_dataset
+   - changed files: mo_column, m_skintem, mo_truncation, labrun
+
+24/01/2000 : version-3-02  (time control)
+   - new time control implemention (Ingo Kirchner)
+     - add ntimeadj in sdsctl to take the time offset 
+       relative to 00UTC + ntimeadj
+     - remove lwmonth from runctl
+     - new routines: mo_time_control.f90
+     - changed files: mo_start_dataset, mo_year, stepon, inictl
+   - calculate drain (code 161) and remove directive DRAIN (g3x)
+     - changed files: inipost, msurf, physc, mo_memory_g3
+   - bandij:  change WHERE statement only for NAG compiler (Bug)
+   - collect all routines with tracer to mo_tracer:
+	xtemiss, xttropo, mo_tracer_mass, trastat, prestatr
+   - changed files: mo_control, mo_diag_tendency, mo_io, mo_nudging, 
+               	mo_nmi, control, mo_mpi, mo_gaussgrid, radint,
+	
+12/01/2000 : version-3-01  (tracer)
+   - xtini:   moved to mo_tracer
+   - xtsink:  moved to mo_tracer
+   - ioinitial: use xtini to initialise tracer
+	        use code table to read surface initial file
+   - iorestart: use xtini to initialise new tracer
+   - init_memory: construct buffer g3a before g3b
+   - scan1sl: copy g3b to g3a only for used fields
+   - physc: only reference parameter to surf, vdiff and radheat
+   - changed files: ioinitial, iorestart, mo_tracer, physc,
+	sw2s, swtt, mo_column, columnctl, init_decomposition,
+	mo_fft, mo_netCDF, mo_memory_g3a, mo_memory_g3b, 
+	mo_memory_base, mo_io, m_surf, m_vdiff, m_radheat,
+	m_skintem, labrun, ice, mo_linked_list
+	
+06/12/1999 : version-3-00  (column)
+   - column model version: mo_column, columnctl
+   - tracer support: mo_tracer, xttropo
+   - fixed g3 bug:  mo_memory_g3a, mo_memory_g3a, ioinitial, scan1sl
+   - mo_mpi: change define NOMPI (bug)
+   - changed files: mo_alai, mo_avgrat, mo_call_trans, mo_control,
+	mo_decomposition, mo_scan_buffer, mo_test_trans, mo_io,
+	mo_sst, bandij, extys, extyv, readfld, scan1sl, slt2, sltb1,
+	sltini, sphdep, trjgl, mo_exception, mo_grib
+
+10/11/1999 : version-2-01
+   - mo_alai:    new module for annual leaf area index
+   - mo_avgrat:  new module for annual vegetation ratio
+   - mo_timeint: new module for time interpolation
+   - mo_sst: use time interpolation from timeintold <--- new results !!!
+   - runctl: add lalai and lavgrat
+   - clsst: moved to mo_sst
+   - stepon: CALL timeintold for time interpolation
+   - mo_diag_tendency: new version
+   - mo_nmi: new version
+   - mo_nudging: new version
+   - Namelist: move ly365 to sdsctl
+   - mo_aerosols: remove DATA statement
+   - readozone: netCDF version (unit 21)
+   - readfld:   netCDF version (unit 14)
+   - savehis3: save only 5(6) history files since
+	       unit.33 and unit.34 are written to unit.31
+   - remove ndiafi from sdsctl
+	changed files: sdsctl.inc, mo_start_dataset and stepon
+   - change 86400. to dayl: mo_grib, mo_midatm, inictl, inipost,
+	                    postatp, radint, setdyn, stepon
+   - changed files: mo_grid, mo_memory_fft, fftd, ffti, sltini
+	radint, control, hdiff, mo_io, mo_midatm, mo_convect_tables,
+	ndgctl, nmictl, mo_year, mo_start_dataset,  mo_control,
+	si1, posts2, m_radheat, inictl, dyn, hdiff, mo_julian, gpc,
+	mo_start_dataset, mo_mpi, mo_decomposition, init_memory,
+	slt2, scan1sl, labrun
+	
+05/10/1999 : version-2-00  (MPI)
+   - MPI version
+   - add some NOALIAS lines for VPP in:
+	tf1n, tf2n, sym1, sym2, sltfill, radint, si2, physc
+
+24/06/1999 : version-1-23
+   - add some IVDEP lines for CRAY's in:
+	tf1n, tf2n, sym1, lti, sltfill, radint, si1
+   - prepair MMR new_entry for MPI
+     - changed routines: mo_linked_list, mo_memory_*, 
+   - some small changes in : ioinitial, iorestart, labrun, drive
+   - use with ONLY in: lti, ltd, ewd, ffti, fftd, si2, sym1, sym2
+   - physc: delete some unused copys from g3a to g3b buffer
+   
+	
+23/06/1999 : version-1-22
+   - replace buffer stucture to real arrays
+     - new routines: mo_memory_sp, mo_memory_gl, mo_memory_g3b,
+	mo_memory_g3a, mo_memory_g2b, mo_memory_g2a, mo_memory_g1b,
+	mo_memory_g1a, mo_memory_f, mo_memory_base, mo_linked_list,
+	mo_legendre
+     - changed routines: mo_sst, mo_nmi, mo_nudging, mo_io_tables,
+	mo_io, mo_grib, mo_f, mo_diag_tendency, mo_control, 
+	m_buffer_setup, tf2n, tf1n, sym2, sym1, statp, statd,
+	sltfill, slt2, si2, si1, setzeroi, scan2, scan1sl, radint,
+	posts2, posts1, physc, lti, ltd, iorestart, ioinitial,
+	inisoil, inictl, ice, fftd, extra, dyn, control, clsst,
+	mo_midatm, mo_hyb, m_surf, stepon, scctp, sccd, inisu0,
+	hdiff
+     - removed routines: mo_lc, mo_global_buffer, mo_gl1, mo_g,
+	mo_buffer, m_setbuf, m_bufnl2, m_bufnl1, m_bufgrd, m_bufglob,
+	m_bufgl1, m_buffer_info, m_buff4a, m_buffer_g1a, m_buffer_g1b, 
+	m_buffer_g2a, m_buffer_g2b, m_buffer_g3a, m_buffer_g3b, 
+	m_buffer_g4a, m_buffer_g4b, pres1, pres2, fcc2, setpres
+     mo_legendre: collect routines for Legendre transformations
+	          (inileg, leginv, legmod, phcs and reord)
+	
+03/06/1999 : version-1-21
+   - netCDF only version:
+     This version works only with netCDF initial, restart and SST files.
+     The old IO version with CRAY binary or IEEE initial, restart 
+     and SST files was removed.
+     - lnetcdf removed in: sdsctl.inc, mo_start_dataset, control, drive,
+	       inictl, initialise, initrac, makesd, posts1, posts2, 
+	       restart, start
+     - removed files: ioposr, ioposi, openr, readr, readrgl, mo_ddr
+     - mo_sst: remove old opensst and rename opensstnc to opensst
+   - MIDATM: define not longer need
+   - LHG3X: fixed bug in inictl and mo_io
+
+02/06/1999 : version-1-20
+   - netCDF support:
+     sdsctl.inc: lnetcdf   *true* to use netcdf library
+                 ldebugio  *true* to debug io
+     mo_netCDF : TYPE netCDF_file, and netCDF IO-routines
+     mo_io     : IO_close, IO_open, IO_putheader, IO_getheader,
+	         IO_init, IO_bufout
+     mo_start_dataset: add lnetcdf and ldebugio
+     mo_sst    : add opensstnc to read netCDF SST's 
+     ioinitial : to read netCDF initial data
+     iorestart : to read netCDF restart data
+     inicom    : renamed to initialise
+     initialise: if lnetcdf IO_init is called to initialise netCDF IO
+     start     : if lnetcdf ioinitial is called to read initial data
+     restart   : if lnetcdf iorestart is called to read restart data
+     drive     : if lnetcdf read lammp, phimp and sigmp with
+	         netCDF library
+     inictl    : if lnetcdf IO_dt is called to get timestep
+     control   : if lnetcdf opensstnc is called to read SST
+     posts1    : if lnetcdf write G1, G2, G3 buffers to netCDF
+	         history files unit.35, unit.36, unit.37 and
+                 GL buffer to history file unit.32
+     posts2    : if lnetcdf write F1, F3, F4 buffers to netCDF
+	         history files unit.31, unit.33, unit.34
+
+
+20/05/1999 : version-1-19
+   - HPUX support: 
+       - define HPUX in mo_kind
+       - bug in util_i8toi4 only for 8 byte INT (INT -> int)
+   - check floating point data for equality in a relational operation 
+     or an arithmetic IF statement
+     change:m_buffer_g3a_init, m_cond,cuadjtq, cuasc, cubase, inictl, 
+	    m_vdiff, m_cond5, m_solang, radlsw, reademi, setzeroi,
+	    xtemiss, xtini, xtsink
+
+	
+22/04/1999 : version-1-18
+   - added NWP forecast and analysis mode [Luis Kornblueh]
+	new flags for runctl: lnwp and lanalysis
+	changes in: runctl, mo_control, mo_grib, inictl, 
+	            stepon and inipost
+   - util_abort: use exit(1) instead of abort()
+   - m_surf: define DRAIN for write drain to g3x01
+   - Checks:
+     - that the interface between caller and callee 
+       of a user procedure is valid.
+     - that each subscript and substring value is valid.
+     - for references to undefined variables.
+       - phcs:    set ztemp = 0.
+       - grdxy:   phi(jstart:jstop)=wrk(jstart:jstop)
+       - lwc:     pflux(:,:,:) = pfluc(:,:,:)
+       - cumastr: set ihmin = -1 if not llo1
+	
+15/03/1999 : version-1-17
+   - mo_midatm: diagnostics with G3X [define G3X for use]
+   - mo_gaussgrid: new gauaw without bsslzr [from IFS]
+   - inipost: change max path length from 64 to 256 characters
+
+17/02/1999 : version-1-16
+   - mo_nmi: NMI update [Ingo Kirchner]
+	nmictl.inc: namelist
+   - mo_nudging and mo_diag_tendency: changed [Ingo Kirchner]
+   - mo_machine: new version
+   - savehis3: output year with 4 digits
+   - subjob: output year with 4 digits
+   - ioposr: fixed bug with the Fujitsu compiler (version 4)
+   - mo_gaussgrid.gauaw: remove GOTO and DATA
+   - mo_fft: trig is now allocatable
+   - some changes [Andreas Rhodin]
+	cond -> m_cond
+	cond5 -> m_cond5
+	cucall -> m_cucall
+	gwdrag -> m_gwdrag
+	radheat -> m_radheat
+	skintem -> m_skintem
+	solang -> m_solang
+	physc: new call to skintem
+        m_control renamed to m_alloc_mods and moved from 
+        module mo_control to module m_alloc_mods
+	surf    -> module m_surf (parameters passed by argument list)
+	vdiff   -> module m_vdiff
+	cuparam -> module mo_cumulus_flux
+ 	inicon  -> module mo_constants
+	inihyb  -> module mo_hyb
+	inidia  -> module mo_diagnostics
+	inigau, gauaw, bsslzr -> module mo_gaussgrid
+        - small changes in:
+           auxhyb: remove resetr
+           grdxy: use gauaw from mo_gaussgrid
+           iniphy: use cuparam from mo_cumulus_flux
+           geopot,  inictl, physc, pres, presf, setdyn, setphys,
+	   mo_control, mo_ddr
+   - mo_doctor: define nout, nerr and nin as parameter
+   - util_fortran.h: include fortran.h only on CRAY (bug on SGI)
+
+15/01/1999 : version-1-15
+   - new nudging and time control [Ingo Kirchner]
+	mo_control, mo_ddr, mo_diag_tendency, mo_nudging, mo_year,
+	control, gpc, inicon, inictl, inictl, setdyn, si1, si2, stepon,
+	inipost, ioposi, ioposr, posts1, runctl, ndgctl
+   - changes for ly365 in  mo_ddr, mo_year, ioposi, posts1 and posts2 [LK]
+   - mo_grib: change iunit to kunit
+   - mo_scan_buffer: xte(nlon,nlev,ntrac)
+   - define lcond5 in runctl for testing cond5 [Ulrike Lohmann]
+   - use klengo instead of kleng in all calls to 'codegb5'
+	(mo_grib, mo_nudging and mo_diag_tendency) 
+   - mo_post: remove nlenw and nlenr
+   - mo_grib: kgrib is now ALLOCATABLE
+
+15/12/1998 : version-1-14
+   - lookup tables removed [Andreas Rhodin]
+      - change cond, cuadjtq, inicon, radint, setphys, vdiff,
+	       mo_constants and mo_convect_tables
+      - old Version with -DLOOKUP
+   - GRIB0 -> GRIB1 [Luis Kornblueh]
+      - remove mo_block1g, mo_block2g and mo_block2s
+      - remove codegb4 and add codegb5
+      - add mo_grib and mo_julian
+      - move outgpi, outgpli, outgpx and outsp to mo_grib
+      - change mo_ddr, mo_nudging, mo_year, clsst, datim, inidoc,
+	       inipost, posts2, prerad, radint and scan1sl
+      - mo_nudging: change outtacc and outtins
+      - mo_diag_tendency: change DIAG_Write
+
+10/12/1998 : version-1-13
+   - rename VERSION.DIFF to ChangeLog
+   - add directory 'bin'; move all binaries to bin
+   - add directory 'run'; move all hjobs to run
+   - additional diagnostics of tendency terms (ltdiag) [Ingo Kirchner]
+      - add module mo_diag_tendency
+      - change control, dyn, hdiff, physc, scan1sl, sccd, scctp,
+	       si1, si2, stepon, tf1n and tf2n
+
+08/12/1998 : version-1-12
+   - change all PRINT statements to WRITE(nout,*)
+   - afterburner:add directory 'post/burn' for the afterburner
+   - endrun:     removed (not used)
+   - mo_nudging: define kunit as integer(cp)
+   - hdiff:      add one directive for SX (!CDIR NODEP)
+   - sccd:       DOT_PRODUCT is not used on vpp7
+   - fftd+ffdi:  delete code for CRAY assembler fft991 version
+   - mo_fft:     change 64 to nfft
+                 add some directives for SX (!CDIR NODEP)
+   - inifft:     move to mo_fft and delete some unused variables
+   - mo_ddr:     move initialisation of nfft to mo_fft
+   - mo_control: move variable nfft to mo_fft
+   - eclibc90:   move function iymd2c to module mo_year
+                 delete unused function confp and decfp
+                 move function fft991cy, qpassm, rpassm and set99 to mo_fft
+                 remove eclibc90
+   - cubase:     one NOVECTOR loop (bug on SX)
+   - outgpi:     z2dim(1:nlon,ix) = z1dim(1:nlon)
+   - outgpli:    z2dim(1:nlon,ix) = z1dim(1:nlon)
+                 iend = istart + illen(jfield) - 1
+   - outgpx:     z2dim(1:nlon,ix) = z1dim(1:nlon)
+                 iend = iend + nlon - 1
+
+
+
+11/11/1998 : version-1-11
+   - completion of the Author comments
+   - add VERSION.DIFF file [this file]
+   - add directory doc 
+     [with: com2mod, cputime.html, Codes, Namelists, Initial_Files, g3x.doc] 
+   - change all common comments to module
+   - fftd: use util_reshape on SX
+   - helmo: delete zeps [not used]
+   - mo_midatm: rename variable DATA to darr [hines_exp and vert_smooth]
+   - mo_midatm: bug in uspnge (stp(nlevp1,...))
+   - mo_midatm: move lmidatm from namelist physctl to runctl
+   - mo_midatm: read spdrag, enspodi, nlvspd1 and nlvspd2 in namelist dynctl
+   - physc: change jk -> jlev ; jl -> jlon
+   - replace GOTOs: cuadjtq, cuasc, cubase, cuddraf, cudlfs, legtri, lti,
+                    outsp, readr, prestat, setzeroi, suaerx, subjob, xtini
+                    inipost, mo_year, mo_ddr, mo_midatm
+
+07/10/1998 : version-1-10
+   - mo_source: source musst have the TARGET attribute
+   - ioposr.f90: change format of Data set name table
+   - fujitsu: delete unused NOALIAS OCL's
+          - vdiff: delete OCL SCALAR
+	  - radheat: change MIDATM DO LOOP
+          - add f90 option -Karraystack3 (12% faster for T21) [#QSUB -ls 200mb]
+   - defines for SX (mo_kind, extra, fftd, ffti, gwdrag, inictl,
+                     lwtt, lwu, sw2s, swde, swr, swu, vdiff)
+   - mo_midatm: new wave sponge
+
+24/09/1998 : version-1-9
+   - ichlen2.f90: GOTO -> EXIT
+   - ichlen.f90: delete (was not used)
+   - move machine_setup from labrun to master
+   - use autoconf
+       - create Makefiles for solaris,fujitsu,cray,irix,nec,aix
+       - define CP4 if c pointer length is only 4 bytes [mo_kind]
+       - use cp for all pbio FILE pointer transfers
+       - libsupport(util_*) uses REAL and INT from config.h
+   - mo_ddr.putddrgl: restart file fort.32 was incorrect [on CRAY's]
+
+14/09/1998 : version-1-8
+   - nudging update [H-S.Bauer]
+   - qmassd: hwn INOUT
+   - extx:   fb  INOUT
+   - inictl: f90 Version number
+   - extra:  #ifndef CRAY [whenfgt, ismin, ismax, intmin, intmax]
+   - mo_midatm: OCL SCALAR -> VCT(MASK)
+   - codegb4.c: delete MAX_LEVELS
+
+01/09/1998 : version-1-7
+   - cuentr: replace api with 3.1415            <--- old results !!!
+   - cuasc: delete ztglace; first two lines where twice
+   - cubasmc: 0. -> 0
+   - SX support [ mo_kind, HF-functions ]
+   - middle atmosphere update [E.Manzini, M.Giorgetta]
+         -mo_convect_tables.f90 100K to 50K    <--- new results !!!
+
+26/08/1998 : version-1-6
+   - variable levels (nlev)
+   - sort comments and header (KATJA)
+   - delete SHORTLOOP
+   - add ALOGHF, SQRTHF and EXPHF for CRAYs
+   - replace copyre
+   - rename fft991cy to fft991 for CRAYs
+   - cuentr: replace 3.1415 with api (A.Rhodin) <--- new results !!!
+   - bug in mo_ddr on SGI [ddrgl]
+   - some changes in: mo_exception.f90, mo_post.f90, mo_sst.f90
+   - some changes in: labrun.f90, postatp.f90, trastat.f90, stepon.f90
+   - some changes in: util_sysinfo.c
+
+11/06/1998 : version-1-5
+   - remove Multitasking (itask, iqtask, cmic ...)
+   - add util_reshape for CRAY version
+
+09/06/1998 : version-1-4
+   - bug in hdiff [zzus(:,:) = 0.]
+   - bug in scan1sl [zpsm1(:) = EXP(alpsm1(1:nlon))]
+   - bug in ioposi [read CRAY initialfiles on CRAY]
+   - bug in mo_buffer [mp_integer]
+   - bug in mo_buffer [zhp in pbwrite]
+   - scm0: cvmgm, cvmgm -> MERGE
+   - remove libpbio and add util_pbio.c
+   - G3X
+
+18/05/1998 : version-1-3
+   - convert F to f90
+   - cvmgm -> MERGE
+
+15/05/1998 : version-1-2
+   - delete MMR
+
+29/04/1998 : version-1-1
+   - change include common blocks to modules
+   - delete all blanks on the end of the line
+
+26/03/1998 : version-1-0
+   - DMBYTE -> JMBYTE
+
+09/03/1998 : version-0-9
+   - runs on SUN, CRAY, FUJITSU, SGI
+
+28/11/1997 : echam4 initial revison
+	   based on echam4.240596.pl
+
+
+
+Uwe Schulzweida
+
+</pre>
+
+</body>
+</html>

@@ -1,0 +1,1523 @@
+MODULE m_vdiff
+
+  REAL, PARAMETER :: wsd_min = 1.0e-1, & ! minimum squared wind increment 
+                     tke_min = 1.0e-4, & ! minimum value of tke
+                     drg_min = 1.0e-2, & ! minimum value of drag coefficient
+                     z0_min  = 1.5e-5    ! minimum roughness length over sea
+
+  !  Intrinsic functions 
+
+#if (defined CRAY) && (! defined SX)
+  REAL :: EXPHF,SQRTHF,ALOGHF
+!DIR$ VFUNCTION EXPHF,SQRTHF
+!DIR$ VFUNCTION ALOGHF
+#define EXP(x)  EXPHF(x)
+#define LOG(x)  ALOGHF(x)
+#define SQRT  SQRTHF
+#else
+  INTRINSIC EXP, LOG, SQRT
+#endif
+  INTRINSIC ABS, COS, MAX, MERGE, MIN, SUM
+
+
+CONTAINS
+
+  SUBROUTINE vdiff(kidia,kfdia,klon,klp2,ktdia,klev,klevm1,klevp1,ktrac,pxtm1,             &
+                   paclcm,paphm1,papm1,pgeom1,pqm1,ptkem,ptkem1m,ptm1,pum1,pvm1,pxm1,      &
+                   laland,pahflm,pahfsm,paz0m,pdew2m,pevapm,pforestm,pseaice,psnm1m,psrfl, &
+                   ptemp2m,ptsm1m,pt2maxm,pt2minm,pustar3m,pustrm,pu10m,pvdism,pvstrm,     &
+                   pv10m,pwimaxm,pwind10m,pwlm1m,pwsm1m,pwsmxm,pvltm,ptke,ptkem1,ktropo,   &
+                   pahfl,pahfs,paz0,pcvs,pcvw,pdew2,pdhfqs,pdhfqw,pdhft,pevap,pqhfl,prsfl, &
+                   ptemp2,pthfl,pt2max,pt2min,pustar3,pustr,pu10,pvdis,pvstr,pv10,pwimax,  &
+                   pwlmx,pwind10,pxhfl,pxtte,pvol,pvom,pqte,ptte,pxte,pvgrat)
+
+    ! Summary:
+    !
+    ! Called from subroutine: physc
+    !
+    ! This subroutine drives the computation of the tendencies of all variables 
+    ! subject to a vertical diffusion like process.  Such a process is normally
+    ! associated with turbulent vertical exchange, which tends to be dominated 
+    ! by processes at and near the surface.  The subroutine also contains all
+    ! models of such processes ... i.e., the surface layer similarity model,
+    ! the pbl model, and the free tropospheric mixing model
+    !
+    ! Physical Description:
+    !
+    ! Surface exchange coefficients are computed using the Louis (1979) fits
+    ! to Monin Obukhov similarity functions.  Vertical diffusion coefficients
+    ! are computed using a prognostic TKE model as described by Brinkop (1994).
+    ! Over land, two different regimes of evaporation prevail: A stomatal 
+    ! resistance dependent one over the vegetated partand a soil relative 
+    ! humidity dependent one over the bare soil part of the grid mesh. Potential
+    ! evaporation takes place over the sea, the snow covered part and liquid 
+    ! water covered part of the grid mesh as well as in case of dew deposition.
+    !
+    ! The model operates on the derivative dry static energy variable and 
+    ! backs out the implicit temperature tendencies.  Liquid water, water vapor,
+    ! zonal, and meridonal winds and an arbitrary number of scalars are also
+    ! typically diffused.
+    !
+    ! This routine is split into 6 conceptual sections.
+    !
+    !   1. Computes the necessary thermodynamic variables, the most intensive
+    !   part of this is computing surface variables and accounting for different
+    !   stability regimes and surface types
+    !
+    !   2. Surface layer similarity theory is called to derive surface exchange
+    !   coefficients based on t-1 values.  Also some further properties of 
+    !   surface, including scalar tracer emmissions are computed.
+    !  
+    !   3. The exchange coefficients within the boundary layer are computed
+    !   using the Brikop (1994) TKE model.  For the lengthscale a measure of
+    !   the depth of the boundary layer is used in unstable regimes.  The TKE
+    !   model used to derive the interior exchange coefficients is also 
+    !   integrated in this section
+    !
+    !   4. Momentum variables are diffused and byproducts such as the roughness
+    !   length over sea (following Charnock (1955)) and dissipation are computed.
+    !
+    !   5. Thermodynamic variables and a user specified number of tracers are
+    !   diffused, byproducts such as 2m temperatures and dew-points and 10m winds
+    !   are calculated here.
+    !   
+    !   6. Arrays are set in the case when the model is run without vertical
+    !   diffusion processes (lvdiff == .false.)
+    !
+    ! Numerical Methods:
+    !
+    ! The numerical basis of the approach is to solve the over implicit system
+    ! of equations using a tri-diagonal solver, and then diagnose the tendencies
+    ! from this system.
+    ! 
+    ! References:
+    !
+    ! Charnock, M., 1955: Wind stress on a water surface; Quart. J. Roy. Meteor.
+    !   Soc., 81, 639-640.
+    ! Brinkop, S. and E. Roeckner, 1995: Sensitivity of a general circulation
+    !   model to parameterizations of cloud-turbulence interactions in the 
+    !   atmospheric boundary layer. Tellus, 47A, 197-220, 1995.
+    ! Deutsches Klima RechnenZentrum Tech Report No. 6, 1994 Revision 3, Section
+    !   3.3, edited by the Modellbetreuungsgruppe
+    ! Louis, J.F., 1979: A parametric model of vertical eddy fluxes in the 
+    !   atmosphere; Boundary Layer Meteorology, 17, 187-202.
+    ! Louis, J.F., M. Tiedtke, and F.-F. Geleyn, 1982: A short history of the 
+    !   PBL parameterization at ECMWF; Proceedings, ECWMF workshop on 
+    !   planetary boundary layer parameterization, Reading, 25-27, Nov., 81. 
+    !   59-80
+    !
+    ! AUTHORS:
+    !
+    ! J. F. Geleyn, ECMWF,    1982, original source
+    ! C. B. Blondin, ECMWF,   1986, changed
+    ! J. Feichter, MI,        1991, changed
+    ! S. Brinkop, MPI,        1992, changed
+    ! U. Schlese, DKRZ,    02.1993, changed
+    ! M. Claussen, MPI,       1993, changed
+    ! E. Roeckner, MPI,       1994, changed
+    ! L. Kornblueh, MPI,   05.1998, f90 rewrite
+    ! U. Schulzweida, MPI, 05.1998, f90 rewrite
+    ! A. Rhodin, MPI,      12.1998, lookup table removed
+    !                      01.1999, Subroutine put into module
+    ! B. Stevens UCLA/MPI, 05.1999, Rewritten, modularized
+    ! 
+    ! for more details see file AUTHORS
+    !
+
+    USE mo_exception,        ONLY:finish
+    USE mo_control,          ONLY:dtime   ,&!time step (in seconds)
+                                  eps     ,&!time filtering coefficien
+                                  nlp2    ,&!max number of points per lat. line+2
+                                  nrow    ,&!current latit. line(one entry/task)
+                                  twodt     !2.*dtime
+    USE mo_gaussgrid,        ONLY:budw    ,&!weights for global budgets
+                                  coriol    !coriolis parameter:2*omega*mu
+    USE mo_diagnostics_zonal,ONLY:devapz  ,&
+                                  dhfsz   ,&
+                                  dvdisz
+    USE mo_param_switches,   ONLY:lvdiff    !true for vertical diffusion
+    USE mo_physc2,           ONLY:cchar   ,&!charnock constant
+                                  ckap    ,&!karman constant
+                                  cqsncr  ,&!inv. of equiv. water height whensnow
+                                  cvdifts ,&!factor for timestep weighting
+                                  cwlmax  ,&!max. moist. content of skin reserv.
+                                  cz0ice    !roughness over sea-ice
+    USE mo_constants,        ONLY:als     ,&!latent heat for sublimation
+                                  alv     ,&!latent heat for vaporisation
+                                  api     ,&!2.*arcsin(1.)
+                                  c2es    ,&!constants used for computation 
+                                  c3ies   ,&!  of saturation mixing ratio 
+                                  c3les   ,&!  over liquid water(*c_les*) or
+                                  c4ies   ,&!  ice(*c_ies*).
+                                  c4les   ,&!
+                                  c5ies   ,&!
+                                  c5les   ,&!
+                                  cpd     ,&!pec. heat at const. press. (dry air)
+                                  g       ,&!gravity acceleration
+                                  rd      ,&!gas constant for dry air
+                                  rv      ,&! gas constant for water vapor
+                                  rhoh2o  ,&!density of liquid water
+                                  tmelt   ,&!temperature of fusion of ice
+                                  vtmpc1  ,&!vtmpc1=rv/rd-1
+                                  vtmpc2    !vtmpc2=cpv/cpd-1
+    USE mo_start_dataset,    ONLY:nstart  ,&!time step for start/restart
+                                  nstep     !current time step
+    USE mo_vegetation,       ONLY:cva     ,&!const. to define stomat. resistance
+                                  cvb     ,&!const. to define stomat. resistance
+                                  cvc     ,&!minimum stomatal resistance
+                                  cvabc   ,&!(cva+cvbc)/cvc
+                                  cvbc    ,&!cvb*cvc
+                                  cvk     ,&!?
+                                  cvkc    ,&!cvk*cvc
+                                  cvrad     !frac. of net s.w rad. contr.to p.a.r
+    USE mo_tracer,           ONLY:lemis   ,&!
+                                  ntrac   ,&!
+                                  xtemiss ,&
+                                  lxtvdiff
+#ifndef NOLOOKUP
+    USE mo_convect_tables,   ONLY: tlucua   !lookup table
+#endif
+
+    IMPLICIT NONE
+
+    !  Scalar arguments:
+    INTEGER, INTENT (IN) :: &
+         kidia, &
+         kfdia, &
+         klon,  &
+         klp2,  &
+         ktdia, &
+         klev,  &
+         klevm1,&
+         klevp1,&
+         ktrac
+
+    !  Array arguments:
+    REAL, INTENT (IN) ::        &
+         pxtm1   (klon,klev,ktrac),&!tracer variables (t-dt)
+         paclcm  (klp2,klev)      ,&! cloud cover (old value)
+         paphm1  (klp2,klevp1)    ,&! half level pressure (t-dt)
+         papm1   (klp2,klev)      ,&! full level pressure (t-dt)
+         pgeom1  (klp2,klev)      ,&! geopotential above surface (t-dt)
+         pqm1    (klp2,klev)      ,&! humidity (t-dt)
+         ptm1    (klp2,klev)      ,&! temperature (t-dt)
+         pum1    (klp2,klev)      ,&! zonal wind (t-dt)
+         pvm1    (klp2,klev)      ,&! meridional wind (t-dt)
+         pxm1    (klp2,klev)        ! cloud water (t-dt)
+    LOGICAL, INTENT (IN) :: &
+         laland  (klp2)         ! land-sea flag
+    REAL, INTENT (IN) ::    &
+         pahflm  (klp2)       ,&! surface latent heat flux (old value)
+         pahfsm  (klp2)       ,&! surface sensible heat flux (old value)
+         paz0m   (klp2)       ,&! roughness length (old value)
+         pdew2m  (klp2)       ,&! dew point temperature at 2 meter(accum.,old value)
+         pevapm  (klp2)       ,&! surface evaporation (accumulated, old value)
+         pforestm(klp2)       ,&! ?
+         pseaice (klp2)       ,&! sea ice cover (new value)
+         psnm1m  (klp2)       ,&! snow depth (t-dt)
+         psrfl   (klp2)       ,&! net solar radiative flux at the surface
+         ptemp2m (klp2)       ,&! temperature at 2 meter (accumulated, old value)
+         ptsm1m  (klp2)       ,&! surface temperature (t-dt)
+         pt2maxm (klp2)       ,&! max. temp. at 2m between output intervals (old v.)
+         pt2minm (klp2)       ,&! min. temp. at 2m between output intervals (old v.)
+         pustar3m(klp2)       ,&! tke for ocean mixed layer (accumulated, old value)
+         pustrm  (klp2)       ,&! u-stress (accumulated, old value)
+         pu10m   (klp2)       ,&! u-wind at 10 meter (accumulated, old value)
+         pvdism  (klp2)       ,&! boundary layer dissipation(accumulated, old value)
+         pvstrm  (klp2)       ,&! v-stress (accumulated, old value)
+         pv10m   (klp2)       ,&! v-wind at 10 meter (accumulated, old value)
+         pwimaxm (nlp2)       ,&! max windspeed at 10m. betw. outp. interv. (old v.)
+         pwind10m(klp2)       ,&! wind speed at 10 meter (accumulated, old value)
+         pwlm1m  (klp2)       ,&! skin reservoir content (t-dt)
+         pwsmxm  (klp2)       ,&! field capacity of soil
+         pvltm   (klp2)       ,&! leaf area index
+         pvgrat  (klp2)         ! vegetation ratio
+    REAL, INTENT (INOUT) ::    &
+         pxtte  (klon,klev,ktrac),&! tendencies of tracer variables
+         pvol   (klp2,klev)      ,&! tendency of meridional wind
+         pvom   (klp2,klev)      ,&! tendency of zonal wind
+         pqte   (klp2,klev)      ,&! tendency of humidity
+         ptte   (klp2,klev)      ,&! tendency of temperature
+         pxte   (klp2,klev)      ,&! tendency of cloud water
+         pwsm1m (klp2)           ,&! surface soil wetness (t-dt)
+         ptkem1m(klp2,klev)      ,&! turbulent kinetic energy (t-dt)
+         ptkem  (klp2,klev)        ! turbulent kinetic energy
+    REAL, INTENT (OUT) :: &
+         ptke   (klp2,klev) ,&! turbulent kinetic energy (t+dt)
+         ptkem1 (klp2,klev) ,&! turbulent kinetic energy (filtered)
+         pahfl  (klp2)      ,&! surface latent heat flux (new value)
+         pahfs  (klp2)      ,&! surface sensible heat flux (new value)
+         paz0   (klp2)      ,&! roughness length (new value)
+         pcvs   (klp2)      ,&! snow cover fraction
+         pcvw   (klp2)      ,&! wet skin fraction
+         pdew2  (klp2)      ,&! dew point temperature at 2m (accumulated, new value)
+         pdhfqs (klp2)      ,&! deriv. of moist. flux over snow with resp. to snow d
+         pdhfqw (klp2)      ,&! deriv. of moist. flux with respect to skin reservoir
+         pdhft  (klp2)      ,&! deriv. of sens. heat flux with resp. to surf. temp.
+         pevap  (klp2)      ,&! surface evaporation (accumulated, new value)
+         pqhfl  (klp2)      ,&! moisture flux at the surface
+         prsfl  (klp2)      ,&! large scale rain flux at the surface
+         ptemp2 (klp2)      ,&! temperature at 2 meter (accumulated, new value)
+         pthfl  (klp2)      ,&! sensible heat flux at the surface
+         pt2max (klp2)      ,&! max temp. at 2m between output intervals (new value)
+         pt2min (klp2)      ,&! min temp. at 2m between output intervals (new value)
+         pustar3(klp2)      ,&! tke for ocean mixed layer (accumulated, new value)
+         pustr  (klp2)      ,&! u-stress (accumulated, new value)
+         pu10   (klp2)      ,&! u-wind at 10 meter (accumulated, new value)
+         pvdis  (klp2)      ,&! boundary layer dissipation (accumulated, new value)
+         pvstr  (klp2)      ,&! v-stress (accumulated, new value)
+         pv10   (klp2)      ,&! v-wind at 10 meter (accumulated, new value)
+         pwimax (klp2)      ,&! max windspeed at 10m betw. outp. interv. (new value)
+         pwlmx  (klp2)      ,&! maximum skin reservoir contnet
+         pwind10(klp2)      ,&! wind speed at 10 meter (accumulated, new value)
+         pxhfl  (klp2)        ! liquid water flux at the surface
+
+    ! This dummy argument is not used in the subprogram.(name:ktropo)
+    INTEGER, INTENT (INOUT) :: ktropo(klon) ! tropopause index
+
+    !  Local scalars: 
+    LOGICAL :: lo
+    INTEGER :: irow, itop, jk, jl, jt
+
+    REAL :: zabcs, zalvs, zaph2m, zca, zcbn, zcoeff, zc1, zc2, zc3, zc4,           &
+            zcor, zcvm3, zcvm4, zcvm5, zdiagt, zdiagw, zdtdt, zephum, zepsr, zepsw,&
+            zes, zfrac, zh2m, zhsoil, zkappa, zln1, zln2, zplmax, zplmin, zq2m,    &
+            zqnlev, zqs1, zqs2, zqwevap, zrat, zred, zrh2m, zrsi, zsoil, zspeed,   &
+            zsrfl, zt2, ztaux, ztauy, ztess, ztmst, ztpfac1, ztpfac2, ztpfac3,     &
+            ztpfac4, zu10, zv10, zwpwp, zwstop, zxhfl, zzcpts, zzqs, zz1, zz2, zz3,&
+            delpi
+
+    !  Local Automatic) arrays: 
+    INTEGER :: ihpbl(klon)
+
+    REAL :: z1mxtm1(klon), zbh(klon), zbm(klon), zbn(klon), zcair(klon),           &
+            zcfe(klon,klev), zcfm(klon,klev), zcfh(klon,klev), zcptgz(klon,klev),  &
+            zcpts(klon), zcsat(klon), zdis(klon,klev), zdqs(klon), zhum(klon),     &
+            zlteta1(klon,klev), zqdif(klon,klev), zqs(klon), zqss(klon,klev),      &
+            zri(klon), zricls(klon), ztdif(klon,klev), zteta1(klon,klev),          &
+            ztkevn(klon,klev), ztvir1(klon,klev), ztvs(klon), zudif(klon,klev),    &
+            zustar(klon),zvdif(klon,klev), zvidis(klon), zwet(klon), zwlmxi(klon), &
+            zxdif(klon,klev), zxtems(klon,ktrac)
+
+    REAL :: xws(klon), xdb(klon), xzm(klon), xcmn(klon), xchn(klon), xcfm(klon),   &
+            xcfh(klon), xsh(klon), xtv(klon), xa(klon,klev), xsr(klon),            &
+            xb(klon,klev), xc(klon,klev), xd(klon,klev), xsv(klon), cdrag(klon)
+
+
+    !  Executable statements 
+
+    ! Derivative constants used throughout the module
+    !
+    zkappa = rd/cpd
+
+    ztmst  = twodt
+    IF (nstep==nstart) ztmst = 0.5*twodt
+    zdiagt = 0.5*twodt
+    zdiagw = zdiagt/rhoh2o
+
+    ztpfac1 = cvdifts
+    ztpfac2 = 1./ztpfac1
+    ztpfac3 = 1. - ztpfac2
+    ztpfac4 = 1. + ztpfac3
+
+    zc1 = ztpfac1*ztmst*g/rd
+    zc2 = 1./ztmst
+    zc3 = zc2/g
+    zc4 = cpd*vtmpc2
+
+    itop = 1
+
+    irow = nrow(1)
+
+    IF (lvdiff) THEN
+       !
+       !-----------------------------------------------------------------------------
+       ! 1. New thermodynamic variable and boundary conditions
+       !
+       !-- 1.1 Diagnose dry static energy, and other thermodynamic parameters used
+       !       Later
+
+       DO jk = ktdia, klev
+          DO jl = kidia, kfdia
+             zcptgz(jl,jk) = pgeom1(jl,jk) + ptm1(jl,jk)*cpd*(1.+vtmpc2*pqm1(jl,jk))
+             zteta1(jl,jk) = ptm1(jl,jk)*(100000./papm1(jl,jk))**zkappa
+             ztvir1(jl,jk) = zteta1(jl,jk)*(1.+vtmpc1*pqm1(jl,jk)-pxm1(jl,jk))
+
+             zz1 = MERGE(alv,als,ptm1(jl,jk) >= tmelt)/cpd
+             zlteta1(jl,jk) = zteta1(jl,jk) &
+                  - zz1*zteta1(jl,jk)/ptm1(jl,jk)*pxm1(jl,jk)
+
+             zes = MIN( satvp((ptm1(jl,jk) > tmelt),ptm1(jl,jk),papm1(jl,jk)),0.5 )
+             zqss(jl,jk) = zes/(1.-vtmpc1*zes)
+          END DO
+       END DO
+       !
+       ! Compute fractional surface coverages
+       !
+       DO jl = kidia, kfdia
+          pcvs(jl)   = MIN(1.,psnm1m(jl)*cqsncr)
+          pwlmx(jl)  = cwlmax*((1.-pvgrat(jl))+pvgrat(jl)*pvltm(jl))
+          zwlmxi(jl) = 1./pwlmx(jl)
+          pcvw(jl)   = pwlm1m(jl)*zwlmxi(jl)
+       END DO
+       !
+       ! Get surface parameters, and other state variables needed to compute 
+       ! exchange coefficients at surface
+       !
+       DO jl = kidia, kfdia
+          lo       = (ptsm1m(jl) > tmelt)
+          zcvm4    = MERGE(c4les,c4ies,lo)
+          zcvm5    = MERGE(c5les,c5ies,lo)
+          zes      = satvp(lo,ptsm1m(jl),paphm1(jl,klevp1))
+          zcor     = 1./(1.-vtmpc1*zes)
+          zqs(jl)  = zes*zcor
+          zdqs(jl) = zqs(jl)*zcvm5*zcor*(1./(ptsm1m(jl)-zcvm4))**2
+
+          zwstop = MIN(0.1,pwsmxm(jl))
+          pwsm1m(jl) = MIN(pwsm1m(jl),pwsmxm(jl))
+          IF (pwsm1m(jl) > (pwsmxm(jl) - zwstop)) THEN
+             zhum(jl) = 0.5*(1.-COS((pwsm1m(jl)-(pwsmxm(jl) - zwstop))*api/zwstop))
+          ELSE
+             zhum(jl) = 0.
+          END IF
+
+          IF (laland(jl) .AND. pqm1(jl,klev) <= zqs(jl))  THEN
+             zhsoil = pcvs(jl) + (1.-pcvs(jl))*(pcvw(jl)+(1.-pcvw(jl))*zhum(jl))
+          ELSE
+             zhsoil = 1.
+          END IF
+          ztess = ptsm1m(jl)*(1.E5/paphm1(jl,klevp1))**zkappa
+
+          ztvs(jl)  = ztess*(1.+vtmpc1*zhsoil*zqs(jl))
+          xdb(jl)   = del_b(  paclcm(jl,klev),    pqm1(jl,klev),    pxm1(jl,klev), &
+                                      zqs(jl),    zqss(jl,klev),           zhsoil, &
+                                ptm1(jl,klev),       ptsm1m(jl),  zteta1(jl,klev), &
+                             zlteta1(jl,klev),            ztess,  ztvir1(jl,klev), &
+                             ztvs(jl))
+
+          xws(jl)   = MAX(wsd_min,pum1(jl,klev)**2+pvm1(jl,klev)**2)
+          zri(jl)   = pgeom1(jl,klev)*xdb(jl) &
+                    / (.5*(ztvir1(jl,klev)+ztvs(jl))*xws(jl))
+          xzm(jl)   = pgeom1(jl,klev)/g
+          zricls(jl)= zri(jl)
+       END DO
+       !
+       !-----------------------------------------------------------------------------
+       ! 2. Computation of surface exchange coefficients and properties 
+       !
+       !-- 2.1 Computation of surface layer similarity (monin-obukhov theory)
+       !
+       CALL mothry(klon,kidia,kfdia,laland(1:klon),zri,xdb,xws,xzm,paz0m(1:klon),&
+                   zustar,xcmn,xchn,xcfm,xcfh)
+       !
+       ! mass and timestep weighting of coefficients and diagnostic calculations
+       !
+       DO jl = kidia, kfdia
+          zz1 = zc1*SQRT(xws(jl))*paphm1(jl,klevp1)   &
+               /(ptm1(jl,klev)*(1.+vtmpc1*pqm1(jl,klev)-pxm1(jl,klev)))
+          zcfm(jl,klev) = xcfm(jl)*zz1
+          zcfh(jl,klev) = xcfh(jl)*zz1
+          zcfe(jl,klev) = zcfm(jl,klev)
+
+          zbn(jl)       = ckap/SQRT(xcmn(jl))
+          zz1           = MAX(drg_min,SQRT(xcfm(jl))/ckap)
+          zbm(jl)       = 1./zz1
+          zbh(jl)       = 1./MAX(drg_min,xcfh(jl)/(zz1*ckap*ckap))
+          cdrag(jl)     = xcfm(jl)
+       ENDDO
+
+       !-- 2.2 Surface emmisions for tracers
+       !
+       IF (ktrac>0) THEN
+          DO jt = 1, ktrac
+             DO jl = kidia, kfdia
+                zxtems(jl,jt) = 0.
+             END DO
+          END DO
+          !
+          ! Surface emissions and dry deposition
+          !
+          IF (lemis) THEN
+             DO jl = kidia, kfdia
+                z1mxtm1(jl) = papm1(jl,klev)/(ptm1(jl,klev)*rd* &
+                             (1.+vtmpc1*pqm1(jl,klev)))
+             END DO
+             CALL xtemiss ( klon,   klev,     irow,    cvdifts,  dtime, &
+                            pxtm1,  zxtems,   z1mxtm1,                  &
+                            laland, pforestm, psnm1m )
+          END IF
+       END IF
+
+       !-- 2.3 Land model parameters and derived values
+       !
+       zplmax = 0.75
+       zplmin = 0.35
+       zepsw  = 1.E-3     
+       zepsr  = 1.E-10    
+       DO jl = kidia, kfdia
+          zwet(jl)  = 0.
+          zcsat(jl) = 1.
+          zcair(jl) = 1.
+          IF (pqm1(jl,klev) <= zqs(jl)) THEN
+             zwpwp    = zplmin*pwsmxm(jl)
+             zqwevap  = 1./(zplmax*pwsmxm(jl)-zwpwp)
+             zsoil    = MAX(zepsw,MIN(1.,(pwsm1m(jl)-zwpwp)*zqwevap))
+             zsrfl    = MAX(zepsr,psrfl(jl)*cvrad)
+             zabcs    = (cva+cvbc)/(cvc*zsrfl)
+             zln1     = LOG((zabcs*EXP( cvk*pvltm(jl)) + 1.)/(zabcs+1.))
+             zln2     = LOG((zabcs+EXP(-cvk*pvltm(jl)))/(zabcs+1.))
+             zrsi     = (cvb*zln1/cvabc-zln2)/cvkc
+             zwet(jl) = 1./(zrsi*zsoil)
+          END IF
+          zwet(jl)  = pcvs(jl) + (1.-pcvs(jl))*(pcvw(jl)+(1.-pcvw(jl))/ &
+                      (1.+xcfh(jl)*SQRT(xws(jl))*zwet(jl)))
+          zwet(jl)  = MERGE(zwet(jl),1.,laland(jl))
+
+          IF (laland(jl) .AND. pqm1(jl,klev) <= zqs(jl) ) THEN
+             lo = zhum(jl) <= pqm1(jl,klev)/zqs(jl)
+             zcsat(jl) = pcvs(jl) + (1.-pcvs(jl))*(pcvw(jl)+(1.-pcvw(jl))* &
+                         MERGE(0.,zhum(jl),lo))
+             zcair(jl) = pcvs(jl) + (1.-pcvs(jl))*(pcvw(jl)+(1.-pcvw(jl))* &
+                         MERGE(0.,1.,lo))
+          END IF
+
+          zcsat(jl) = pvgrat(jl)*zwet(jl) + (1.-pvgrat(jl))*zcsat(jl)
+          zcair(jl) = pvgrat(jl)*zwet(jl) + (1.-pvgrat(jl))*zcair(jl)
+          zcpts(jl) = ptsm1m(jl)*cpd*(1.+vtmpc2*(zcsat(jl)*zqs(jl)+ &
+                      (1.-zcair(jl))*pqm1(jl,klev)))
+       END DO
+       !
+       !-----------------------------------------------------------------------------
+       ! 3.0 Computation of interior exchange coefficients
+       !
+       ! The pupose of this section is to compute eddy diffusivities for
+       ! the turbulent diffusion of model predicted fields.  Currently this
+       ! is done using a prognostic TKE model, thus the integration of the
+       ! TKE model is also handeled in this section
+       !
+
+       !-- 3.1 Diagnose PBL Height
+
+       CALL pbl_height(klon,klp2,klev,kidia,kfdia,zustar,pgeom1,zcptgz, &
+                       coriol(irow),ihpbl)
+
+       !-- 3.2 Get exchange coefficients
+
+       CALL tke_srf(   klp2,   klev,   klon,  kidia,  kfdia,  ihpbl, &
+                     pgeom1,   ztvs, ztvir1, zustar,   xcfh,    xws, ztkevn  )
+
+       DO jk = ktdia, klevm1
+          CALL stability(   klp2,   klev, klevp1,   klon,  kidia,  kfdia,     jk, &
+                          pgeom1, paphm1,   pum1,   pvm1,   pqm1,   pxm1,   ptm1, &
+                          paclcm,   zqss, zteta1, ztvir1,zlteta1,    xtv,    xdb, &
+                             xsh,   zri)
+
+          CALL austausch(   klp2,   klev,   klon,  kidia,  kfdia,  ihpbl,     jk, &
+                           nstep, nstart, pgeom1,    zri,    xsh,    xdb,  ztmst, &
+                         ptkem1m, ztkevn,   xcfh,   xcfm)
+          !
+          ! mass and timestep weighting of coefficients
+          !
+          DO jl = kidia, kfdia
+             zz1 = zc1*paphm1(jl,jk+1)*g/(xtv(jl)*(pgeom1(jl,jk)-pgeom1(jl,jk+1)))
+             zcfh(jl,jk)  = xcfh(jl)*zz1
+             zcfm(jl,jk)  = xcfm(jl)*zz1
+             zcfe(jl,jk)  = zcfm(jl,jk) &
+                           *SQRT(ztkevn(jl,jk)/MAX(tke_min,ptkem1m(jl,jk)))
+          END DO
+       END DO
+
+       !-- 3.3 Diffusion implicit computations for tke
+
+       DO jk = ktdia, klev
+          DO jl = kidia, kfdia
+             xb(jl,jk) = ztpfac2*ztkevn(jl,jk)
+          END DO
+       END DO
+       DO jl = kidia, kfdia
+          xsv(jl) = ztpfac2*ztkevn(jl,klev)
+          xsr(jl) = 0.
+       END DO
+
+       DO jk = itop, klevm1
+          DO jl = kidia, kfdia
+             delpi     = 1./(papm1(jl,jk+1)-papm1(jl,jk))
+             xa(jl,jk) = -0.5*(zcfe(jl,jk)+zcfe(jl,MAX(1,jk-1)))*delpi
+             xc(jl,jk) = -0.5*(zcfe(jl,jk)+zcfe(jl,jk+1))*delpi
+             xd(jl,jk) = 1. - xa(jl,jk) - xc(jl,jk)
+          END DO
+       END DO
+       DO jl = kidia, kfdia
+          xa(jl,itop) = 0.0
+          xd(jl,itop) = 1. - xc(jl,itop)
+       END DO
+
+       CALL tridiff(klon,klev,kidia,kfdia,itop,klev-2,xsv,xsr,xa,xd,xc,xb)
+       !
+       !-- 3.4 Time-stepping of TKE
+       !
+       ! Compute the net TKE at the next time level and then time filter, also
+       ! checks to make sure that the next time level tke is positive, note the
+       ! different timestepping on the first step
+       !
+       DO jk = itop, klev
+          DO jl = kidia, kfdia
+             ptke(jl,jk) = xb(jl,jk) + ztpfac3*ztkevn(jl,jk)
+          END DO
+       END DO
+
+       IF (nstep == nstart) THEN
+          DO jk = ktdia, klev
+             DO jl = kidia, kfdia
+                ptkem(jl,jk)   = ztkevn(jl,jk) 
+                ptkem1(jl,jk)  = ptkem(jl,jk) 
+                ptkem1m(jl,jk) = ztkevn(jl,jk) 
+             END DO
+          END DO
+       ELSE
+          DO jk = ktdia, klev
+             DO jl = kidia, kfdia
+                ptkem1(jl,jk) = ptkem(jl,jk) + eps*(ptkem1m(jl,jk)- &
+                                2.*ptkem(jl,jk)+ptke(jl,jk))
+             END DO
+          END DO
+       END IF
+
+       IF ( MINVAL(ptke(kidia:kfdia,itop:klev)) <= 0.) THEN
+          CALL finish('vdiff','Run terminated.')
+       END IF
+       !
+       !-----------------------------------------------------------------------------
+       ! 4. Diffusion implicit computations for momentum
+       !
+       !-- 4.1 Solve the vertical diffusion problem to get tendencies
+       !
+       ! Set up tridiangonal System
+       !
+       DO jk = itop, klev
+          DO jl = kidia, kfdia
+             zudif(jl,jk) = ztpfac2*pum1(jl,jk)
+             zvdif(jl,jk) = ztpfac2*pvm1(jl,jk)
+          END DO
+       END DO
+
+       DO jk = itop, klev
+          DO jl = kidia, kfdia
+             delpi     = 1./(paphm1(jl,jk+1)-paphm1(jl,jk))
+             xa(jl,jk) = -zcfm(jl,MAX(1,jk-1))*delpi 
+             xc(jl,jk) = -zcfm(jl,jk)*delpi
+             xd(jl,jk) = 1. - xa(jl,jk) - xc(jl,jk)
+          END DO
+       END DO
+       DO jl = kidia, kfdia
+          xa(jl,itop) = 0.0
+          xd(jl,itop) = 1. - xc(jl,itop)
+       END DO
+       !
+       !-- Solve System
+       !
+       DO jl = kidia, kfdia
+          xsv(jl) = 0.
+          xsr(jl) = 0.
+       END DO
+       CALL tridiff(klon,klev,kidia,kfdia,itop,klevm1,xsv,xsr,xa,xd,xc,zudif)
+
+       DO jl = kidia, kfdia
+          xsv(jl) = 0.
+       END DO
+       CALL tridiff(klon,klev,kidia,kfdia,itop,klevm1,xsv,xsr,xa,xd,xc,zvdif)
+       !
+       ! Update variables and calculate dissipation
+       !       
+       DO jl = kidia, kfdia
+          zvidis(jl) = 0.
+       END DO
+
+       DO jk = itop, klev
+          DO jl = kidia, kfdia
+             pvom(jl,jk) = pvom(jl,jk) + (zudif(jl,jk)-ztpfac2*pum1(jl,jk))*zc2
+             pvol(jl,jk) = pvol(jl,jk) + (zvdif(jl,jk)-ztpfac2*pvm1(jl,jk))*zc2
+             zdis(jl,jk) = 0.5*((ztpfac2*pum1(jl,jk)-zudif(jl,jk))  &
+                           *(ztpfac4*pum1(jl,jk)+zudif(jl,jk))      &
+                           +(ztpfac2*pvm1(jl,jk)-zvdif(jl,jk))      &
+                           *(ztpfac4*pvm1(jl,jk)+zvdif(jl,jk)))
+             zvidis(jl) = zvidis(jl) + zdis(jl,jk)*(paphm1(jl,jk+1)-paphm1(jl,jk))
+          END DO
+       END DO
+       dvdisz(irow) = zdiagt*zc3*budw(irow)*SUM(zvidis(1:klon))
+       !
+       !-- 4.1 Momentum Diagnostics (ustar and dissipation)
+       !
+       zz1 = ztpfac1*cchar/g
+       zz2 = ztpfac1/rd
+       zz3 = rhoh2o*1.025
+       DO jl = kidia, kfdia
+          IF (.NOT. laland(jl)) THEN
+             paz0(jl) = zz1*cdrag(jl)*SQRT(zudif(jl,klev)**2+zvdif(jl,klev)**2)
+             paz0(jl) = MAX(z0_min,paz0(jl)*SQRT(xws(jl)))
+             paz0(jl) = MERGE(cz0ice,paz0(jl), pseaice(jl) > 0.5 )
+          ELSE
+             paz0(jl) = paz0m(jl)
+          END IF
+
+          ztaux       = zcfm(jl,klev)*zudif(jl,klev)/(ztmst*g)
+          ztauy       = zcfm(jl,klev)*zvdif(jl,klev)/(ztmst*g)
+          pustr(jl)   = pustrm(jl)   + zdiagt*ztaux
+          pvstr(jl)   = pvstrm(jl)   + zdiagt*ztauy
+          pustar3(jl) = pustar3m(jl) + zdiagt*SQRT(SQRT(ztaux**2+ztauy**2)/zz3)**3
+          pvdis(jl)   = pvdism(jl)   + zdiagt*zc3*zvidis(jl)
+       END DO
+       !
+       !-----------------------------------------------------------------------------
+       ! 5. Diffusion implicit computations for scalars
+       !
+       !-- 5.1 Solve the vertical diffusion problem to get tendencies
+       !
+       ! Set up tridiangonal System
+       !
+       DO jk = itop, klev
+          DO jl = kidia, kfdia
+             ztdif(jl,jk) = ztpfac2*zcptgz(jl,jk)
+             zqdif(jl,jk) = ztpfac2*pqm1(jl,jk)
+             zxdif(jl,jk) = ztpfac2*pxm1(jl,jk)
+          END DO
+       END DO
+
+       DO jk = itop, klev
+          DO jl = kidia, kfdia
+             delpi     = 1./(paphm1(jl,jk+1)-paphm1(jl,jk))
+             xa(jl,jk) = -zcfh(jl,MAX(1,jk-1))*delpi 
+             xc(jl,jk) = -zcfh(jl,jk)*delpi
+             xd(jl,jk) = 1. - xa(jl,jk) - xc(jl,jk)
+          END DO
+       END DO
+       DO jl = kidia, kfdia
+          xa(jl,itop) = 0.0
+          xd(jl,itop) = 1. - xc(jl,itop)
+       END DO
+       !
+       ! Solve System for vapor, heat, and liquid water
+       !
+       DO jl = kidia, kfdia
+          xd(jl,klev) = 1. - xa(jl,klev) - xc(jl,klev)*zcair(jl)
+          xsv(jl) = zqs(jl)*ztpfac2*zcsat(jl)
+          xsr(jl) = 0.
+       END DO
+       CALL tridiff(klon,klev,kidia,kfdia,itop,klevm1,xsv,xsr,xa,xd,xc,zqdif)
+
+       DO jl = kidia, kfdia
+          delpi       = 1./(paphm1(jl,klevp1)-paphm1(jl,klev))
+          xc(jl,klev) = -zcfh(jl,klev)*delpi
+          xd(jl,klev) = 1. - xa(jl,klev) - xc(jl,klev)
+          xsv(jl)     = zcpts(jl)*ztpfac2
+       END DO
+       CALL tridiff(klon,klev,kidia,kfdia,itop,klevm1,xsv,xsr,xa,xd,xc,ztdif)
+
+       DO jl = kidia, kfdia
+          xsv(jl) = 0.
+       END DO
+       CALL tridiff(klon,klev,kidia,kfdia,itop,klevm1,xsv,xsr,xa,xd,xc,zxdif)
+       !
+       ! Update variables, backing out mositure effects from dry static energy
+       ! flux and accounting for dissipative heating
+       !
+       DO jk = itop, klev
+          DO jl = kidia, kfdia
+             zqdif(jl,jk) = zqdif(jl,jk) + ztpfac3*pqm1(jl,jk)
+             pqte(jl,jk)  = pqte(jl,jk) + (zqdif(jl,jk)-pqm1(jl,jk))*zc2
+
+             ztdif(jl,jk) = ztdif(jl,jk) + ztpfac3*zcptgz(jl,jk)
+             zdtdt = ((ztdif(jl,jk)+zdis(jl,jk)-pgeom1(jl,jk)) &
+                   /  (cpd*(1.+vtmpc2*zqdif(jl,jk)))-ptm1(jl,jk))*zc2
+             ptte(jl,jk)  = ptte(jl,jk) + zdtdt
+
+             zxdif(jl,jk) = zxdif(jl,jk) + ztpfac3*pxm1(jl,jk)
+             pxte(jl,jk)  = pxte(jl,jk) + (zxdif(jl,jk)-pxm1(jl,jk))*zc2
+          END DO
+       END DO
+       !
+       ! Set up and solve analagous system for scalars
+       !
+       IF (lxtvdiff) THEN
+          DO jt = 1, ntrac
+
+             DO jk = itop, klev
+                DO jl = kidia, kfdia
+                   xb(jl,jk) = ztpfac2*pxtm1(jl,jk,jt)
+                END DO
+             END DO
+             DO jl = kidia, kfdia
+                delpi       = 1./(paphm1(jl,klevp1)-paphm1(jl,klev))
+                xc(jl,klev) = 0.
+                xd(jl,klev) = 1. - xa(jl,klev) - xc(jl,klev)
+                xsv(jl) = 0.
+                xsr(jl) = ztpfac2*zxtems(jl,jt)*g*ztmst*delpi
+             END DO
+
+             CALL tridiff(klon,klev,kidia,kfdia,itop,klevm1,xsv,xsr,xa,xd,xc,xb)
+
+             DO jk = itop, klev
+                DO jl = kidia, kfdia
+                   xb(jl,jk)       = xb(jl,jk)+ztpfac3*pxtm1(jl,jk,jt)
+                   pxtte(jl,jk,jt) = pxtte(jl,jk,jt)+(xb(jl,jk)-pxtm1(jl,jk,jt))/ztmst
+                END DO
+             END DO
+
+          END DO
+       END IF
+
+       !
+       !-- 5.2 Storage of the surface heat (s.+l.) and moisture fluxes and their
+       !   first derivatives against surface values
+       !
+       DO jl = kidia, kfdia
+          zcoeff = zc3*zcfh(jl,klev)
+
+          lo = zhum(jl) <= pqm1(jl,klev)/zqs(jl)
+          zhum(jl) = MERGE(0.,zhum(jl),lo)
+          zca = MERGE(0.,1.,lo)
+          zhum(jl) = MERGE(zhum(jl),1.,laland(jl))
+          zca = MERGE(zca,1.,laland(jl))
+          lo = pqm1(jl,klev) > zqs(jl)
+          zhum(jl) = MERGE(1.,zhum(jl),lo)
+          zca = MERGE(1.,zca,lo)
+          zhum(jl) = (1.-pcvs(jl))*(1.-pcvw(jl))*zhum(jl)
+          zca = (1.-pcvs(jl))*(1.-pcvw(jl))*zca
+
+          zqnlev = zqdif(jl,klev) - ztpfac3*pqm1(jl,klev)
+          zzqs = ztpfac2*zqs(jl)
+          pqhfl(jl) = zcoeff*(zcair(jl)*zqnlev-zcsat(jl)*zzqs)
+
+          zzcpts = ztpfac2*zcpts(jl)
+          pthfl(jl) = zcoeff*(ztdif(jl,klev) - ztpfac3*zcptgz(jl,klev) - zzcpts)
+          pdhft(jl) = -zc4*pqhfl(jl)
+          pthfl(jl) = pthfl(jl) + ptsm1m(jl)*pdhft(jl)
+
+          zxhfl = zcoeff*(zxdif(jl,klev) - ztpfac3*pxm1(jl,klev))
+          prsfl(jl) = MAX(0.,zxhfl)
+          pxhfl(jl) = MIN(zxhfl,0.)
+
+          pahfs(jl) = pahfsm(jl) + zdiagt*pthfl(jl)
+          pevap(jl) = pevapm(jl) + zdiagw*(pqhfl(jl)+pxhfl(jl))
+
+          pdhfqw(jl) = zcoeff*zwlmxi(jl)*(1.-pcvs(jl))*(zqnlev-zzqs)
+
+          pdhfqs(jl) = zcoeff*(zqnlev-zzqs)
+       END DO
+
+       dhfsz(irow)  = zdiagt*budw(irow)*SUM(pthfl(1:klon))
+       devapz(irow) = zdiagw*budw(irow)*SUM(pqhfl(1:klon))
+
+       DO jl = kidia, kfdia
+          pqhfl(jl) = pqhfl(jl) - pcvs(jl)*pdhfqs(jl)
+          pahfl(jl) = alv*pqhfl(jl) + als*pcvs(jl)*pdhfqs(jl)
+          pthfl(jl) = pthfl(jl) + pahfl(jl)
+          pahfl(jl) = pahflm(jl) + zdiagt*pahfl(jl)
+          lo = laland(jl) .OR. ptsm1m(jl) > tmelt
+          zalvs = als*pcvs(jl) + alv*(1.-pcvs(jl))
+          zalvs = MERGE(zalvs,als,lo)
+          pdhft(jl) = -ztpfac2*zc3*zcfh(jl,klev)*(zcpts(jl)/ptsm1m(jl)+ &
+                      (zalvs-zc4*ptsm1m(jl))*zcsat(jl)*zdqs(jl)) + pdhft(jl)
+       END DO
+       !
+       !-- 5.2 Thermodynamic Diagnostics
+       !
+       zephum = 5.E-2
+       DO jl = kidia, kfdia
+          !
+          ! Maximum and mimimum 2m temperatures
+          !
+          zrat = 2.0*g/pgeom1(jl,klev)
+          zcbn = LOG(1.+(EXP(zbn(jl))-1.)*zrat)
+          IF (zricls(jl) >= 0.) THEN
+             zred = (zcbn-(zbn(jl)-zbh(jl))*zrat)/zbh(jl)
+          ELSE
+             zred = (zcbn-LOG(1.+(EXP(zbn(jl)-zbh(jl))-1.)*zrat))/zbh(jl)
+          END IF
+          zh2m = zcpts(jl) + zred*(zcptgz(jl,klev)-zcpts(jl))
+          zt2  = (zh2m-2.0*g)/(cpd*(1.+vtmpc2*pqm1(jl,klev)))
+          ptemp2(jl) = ptemp2m(jl) + zdiagt*zt2
+          pt2max(jl) = MAX(pt2maxm(jl),zt2)
+          pt2min(jl) = MIN(pt2minm(jl),zt2)
+          !
+          ! 2m Dew points
+          !
+          zqs1   = satvp(ptm1(jl,klev) > tmelt, ptm1(jl,klev),papm1(jl,klev))
+          zqs1   = zqs1/(1.-vtmpc1*zqs1)
+          zrh2m  = MAX(zephum,pqm1(jl,klev)/zqs1)
+
+          lo     = zt2 > tmelt
+          zcvm3  = MERGE(c3les,c3ies,lo)
+          zcvm4  = MERGE(c4les,c4ies,lo)
+          zaph2m = paphm1(jl,klevp1)*(1.-2.0*g/(rd*zt2*(1.+vtmpc1*pqm1(jl,klev))))
+
+          zqs2      = satvp(lo, zt2,zaph2m)
+          zqs2      = zqs2/(1.-vtmpc1*zqs2)
+          zq2m      = zrh2m*zqs2
+          zfrac     = LOG(zaph2m*zq2m/(c2es*(1.+vtmpc1*zq2m)))/zcvm3
+          pdew2(jl) = pdew2m(jl) + zdiagt*MIN(zt2,(tmelt-zfrac*zcvm4)/(1.-zfrac))
+          !
+          ! 10m wind components, max 10m windspeed
+          !
+          zrat        = 10.*g/pgeom1(jl,klev)
+          zcbn        = LOG(1.+(EXP(zbn(jl))-1.)*zrat)
+          IF (zricls(jl) >= 0.) THEN
+             zred      = (zcbn-(zbn(jl)-zbm(jl))*zrat)/zbm(jl)
+          ELSE
+             zred      = (zcbn-LOG(1.+(EXP(zbn(jl)-zbm(jl))-1.)*zrat))/zbm(jl)
+          END IF
+          zu10        = zred*pum1(jl,klev)
+          zv10        = zred*pvm1(jl,klev)
+          zspeed      = SQRT(zu10**2+zv10**2)
+          pu10(jl)    = pu10m(jl) + zdiagt*zu10
+          pv10(jl)    = pv10m(jl) + zdiagt*zv10
+          pwimax(jl)  = MAX(pwimaxm(jl),zspeed)
+          pwind10(jl) = pwind10m(jl) + zdiagt*zspeed
+
+       END DO
+       !
+       !-----------------------------------------------------------------------------
+       ! 6. Necessary computations if subroutine is by-passed
+       !
+    ELSE
+       DO jl = kidia, kfdia
+          pcvs(jl)    = MIN(1.,psnm1m(jl)*cqsncr)
+          pwlmx(jl)   = cwlmax*((1.-pvgrat(jl))+pvgrat(jl)*pvltm(jl))
+          pcvw(jl)    = pwlm1m(jl)/pwlmx(jl)
+          paz0(jl)    = paz0m(jl)
+          pvdis(jl)   = pvdism(jl)
+          pustr(jl)   = pustrm(jl)
+          pvstr(jl)   = pvstrm(jl)
+          pahfs(jl)   = pahfsm(jl)
+          pahfl(jl)   = pahflm(jl)
+          pevap(jl)   = pevapm(jl)
+          pthfl(jl)   = 0.
+          pdhft(jl)   = 0.
+          pqhfl(jl)   = 0.
+          pxhfl(jl)   = 0.
+          pdhfqw(jl)  = 0.
+          pdhfqs(jl)  = 0.
+          prsfl(jl)   = 0.
+          ptemp2(jl)  = ptemp2m(jl)
+          pt2max(jl)  = pt2maxm(jl)
+          pt2min(jl)  = pt2minm(jl)
+          pdew2(jl)   = pdew2m(jl)
+          pu10(jl)    = pu10m(jl)
+          pv10(jl)    = pv10m(jl)
+          pwind10(jl) = pwind10m(jl)
+          pustar3(jl) = pustar3m(jl)
+          pwimax(jl)  = pwimaxm(jl)
+       END DO
+       dvdisz(irow)  = 0.
+       dhfsz(irow)   = 0.
+       devapz(irow)  = 0.
+    END IF
+
+    RETURN
+
+  CONTAINS
+
+    REAL FUNCTION satvp(water,tk,prs)
+
+      ! Description:
+      !
+      ! Computes the saturation vapor pressure over ice or water depending
+      ! on flag according to one of a variety of methods determined by a
+      ! preprocessor
+      !
+      ! Authors:
+      !
+      ! B. Stevens, MPI/UCLA,  rewrite/modularized,  05.1999
+      !
+
+      IMPLICIT NONE
+
+      LOGICAL, INTENT (IN)  :: water   ! Logical flag for water sat vap pressure 
+
+      REAL, INTENT (IN)     :: tk,   & ! Temperature (Kelvin)
+                               prs     ! Pressure (Pascals)
+
+
+#ifndef NOLOOKUP
+      satvp = tlucua(INT(tk*1000.))/prs
+#else
+      IF (water) THEN
+         satvp = c2es*EXP(c3les*(tk-tmelt)/(tk-c4les))/prs
+      ELSE
+         satvp = c2es*EXP(c3ies*(tk-tmelt)/(tk-c4ies))/prs
+      END IF
+#endif
+
+    END FUNCTION satvp
+
+    REAL FUNCTION del_b(cf0,qv,ql,qs,qss,rhs,ta,ts,tha,thl,ths,thva,thvs)
+
+      ! Description:
+      !
+      ! Computes the surface buoyancy jump in possibly saturated conditions
+      !
+      ! Authors:
+      !
+      ! B. Stevens, MPI/UCLA,  rewrite/modularized,  05.1999
+      !
+
+      IMPLICIT NONE
+
+      REAL, INTENT (IN)    :: qv,   & ! humidity
+                              ql,   & ! cloud water
+                              qs,   & ! saturation vapor pressure air
+                              qss,  & ! saturation vapor pressure air
+                              rhs,  & ! relative humidity at surface
+                              ta,   & ! temperature of air 
+                              ts,   & ! temperature of surface
+                              tha,  & ! potential temperature of air 
+                              thl,  & ! liq. water pot. temp
+                              ths,  & ! potential temperature of surface
+                              thva, & ! virtual pot. temperature of air 
+                              thvs, & ! virtual pot. temperature of surf
+                              cf0     ! cloud fraction
+
+      REAL    :: th0, thv0, qs0, lh, lct, lrt, x1, x2, rvord, alp, bet 
+
+
+      rvord  = rv/rd
+      th0    = 0.5*(tha+ths)    ! average theta between air and surf
+      thv0   = 0.5*(thva+thvs)  ! average theta_v between air and surf
+      qs0    = 0.5*(qss+qs)     ! average saturation humidity
+
+      lh     = MERGE(alv,als, ta >= tmelt)   ! Latent Heat
+      lct    = lh/(cpd * 0.5*(ta+ts))        ! L / (Cp*T)
+      lrt    = lh/(rd  * 0.5*(ta+ts))        ! L / (Rd*T)
+
+      x1     = 1. + (rvord-1.0)*0.5*(ql+qv+qs*rhs)
+      x2     = x1 - lrt*qs0*(lct*x1 - rvord)/(rvord + lrt*lct*qs0)
+
+      alp    = cf0*x2 + (1.-cf0)*x1
+      bet    = cf0*(lct*x2-1.0) + (1.-cf0)*(rvord - 1.0)
+
+      del_b  = alp*(thl - ths) + bet*th0*((qv + ql) - qs*rhs)
+
+    END FUNCTION del_b
+
+  END SUBROUTINE vdiff
+
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE mothry(klon,kidia,kfdia,lm,ri,db,ws,zm,z0_m,ustar,cmn,chn,cfm,cfh)
+
+    ! Description:
+    !
+    ! MOTHRY (Monin-Obukov similarity THeoRY) Computes the surface exchange 
+    ! coefficients and related quantities following the Louis (1979) fits
+    !
+    ! Method:
+    ! 
+    ! Computes neutral and stability corrected exchange coefficients
+    ! for momentum and heat following Louis (BLM, 1979,1982).  The exchange
+    ! coefficients for heat are given different dependencies of the land
+    ! ocean and thus the routine requires a land mask as input
+    !
+    ! Authors:
+    !
+    ! B. Stevens, MPI/UCLA,  rewrite/modularized,  05.1999
+    !
+
+    USE mo_physc2,     ONLY: cb,   & ! stability parameter near neutrality
+                             cc,   & ! stability parameter for unst. cases
+                             cd,   & ! stability parameter for stable cases
+                             ckap    ! von karman constant
+    IMPLICIT NONE
+
+    REAL, PARAMETER  :: z0_max = 2.0,    & ! Maximum roughness height
+                        c1     = 0.0016, & ! Constant for free convection
+                        c2     = 1.25,   & ! Exponent for free convection
+                        c2i    = 0.80      ! 1/c2
+
+    INTEGER, INTENT (IN) :: klon, kidia, kfdia
+
+    LOGICAL, INTENT (IN) :: lm(klon)      ! land mask
+
+    REAL, INTENT (IN)    :: ri(klon),   & ! surface richardson number
+                            db(klon),   & ! surface buoyancy jump
+                            ws(klon),   & ! wind speed at first level
+                            zm(klon),   & ! height (m agl) of first level
+                            z0_m(klon)    ! roughness height for momentum
+
+    REAL, INTENT (OUT)   :: ustar(klon), & ! ustar
+                            cmn(klon),   & ! neutral drag coefficient
+                            chn(klon),   & ! neutral heat transfer coefficient
+                            cfm(klon),   & ! stability corrected cmn
+                            cfh(klon)      ! stability corrected chn
+
+    INTEGER :: jl
+    REAL    :: z0_h,zalom,zaloh,zz,fh,fhul,fhus,fm,cmn_max,cfm_max
+
+
+    DO jl = kidia, kfdia
+       !
+       ! Computation of neutral momemtum (drag) and heat transfer coefficients
+       !
+       z0_h    = z0_m(jl)*EXP(2.-86.276*z0_m(jl)**0.375)
+       zalom   = LOG(1.+zm(jl)/z0_m(jl))
+       zaloh   = LOG(1.+zm(jl)/z0_h)
+       zz      = ckap**2 / zalom
+       cmn(jl) = zz/ zalom
+       chn(jl) = zz/ zaloh
+       !
+       ! Computation of stability corrected exchange coefficients
+       !   
+       IF (ri(jl) >=0.0) THEN
+          zz   = SQRT( 1.+cd*ABS(ri(jl)))
+          fm   = 1./(1.+2.0*cb*ri(jl)/zz) 
+          fh   = 1./(1.+3.0*cb*ri(jl)*zz)
+       ELSE
+          zz   = 1./(1.+3.0*cb*cc*cmn(jl)*SQRT(ABS(ri(jl))*(1.+zm(jl)/z0_m(jl))))
+          fm   = (1.-2.0*cb*ri(jl)*zz)
+          fhul = (1.-3.0*cb*ri(jl)*zz)
+          fhus = (1.+((c1/(chn(jl)*SQRT(ws(jl))))*ABS(db(jl))**(1./3.))**c2)**c2i
+          fh   = MERGE( fhul, fhus, lm(jl))
+       END IF
+       cfm(jl) = fm*cmn(jl)
+       cfh(jl) = MERGE( cmn(jl) , chn(jl) , lm(jl) )*fh
+       !
+       ! Computation of ustar (with a maximum roughness length z0_max)
+       !
+       cmn_max   = MERGE( (ckap/LOG(1.+zm(jl)/z0_max))**2,          &
+                           cmn(jl), z0_m(jl) > z0_max )
+       cfm_max   = MERGE( cmn_max*(1.-2.0*cb*ri(jl))/               &
+                          (1.+3.0*cb*cc*cmn_max*SQRT(ABS(ri(jl))*   &
+                          (1.+zm(jl)/z0_max))),                     &
+                          cfm(jl)*cmn_max/cmn(jl),                  &
+                          z0_m(jl) > z0_max .AND. ri(jl) < 0.       )
+       ustar(jl) = SQRT(ws(jl) * cfm_max )
+    END DO
+
+    RETURN
+  END SUBROUTINE mothry
+
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE pbl_height(klon,klp2,klev,kidia,kfdia,ustar,gz,s,coriol,i_hpbl)
+
+    ! Description:
+    !
+    ! Computes the level (i_hpbl(klon)) containing the pbl top
+    !
+    ! Method:
+    !
+    ! The pbl top is defined as the either the Ekman scale height, or the
+    ! height of the decreasing dry static energy, which ever is greater
+    !
+    ! i_hpbl is the layer spanning this height, or some maximum value in 
+    ! cases when the dynamic/thermal heights are to small.
+    !
+    ! Authors:
+    !
+    ! B. Stevens, MPI/UCLA,  rewrite/modularized,  05.1999
+    !
+
+    USE mo_constants,  ONLY : g                ! gravitational acceleration
+
+    IMPLICIT NONE
+
+    INTEGER, PARAMETER :: koff   = 3           ! offset for minimum pbl height
+    REAL, PARAMETER    :: f_min  = 5.0E-05,  & ! min. value of coriolis parameter
+                          c_dyn  = 3.0E-01     ! proportionality const. for h_dyn
+
+    INTEGER, INTENT (IN) :: klev,          & ! number of model levels
+                            klon,          & ! number of longitude points
+                            klp2,          & ! dimension of gz
+                            kidia,         & ! starting index for longitude grid
+                            kfdia            ! ending index for longitude grid
+    REAL, INTENT (IN)    :: ustar(klon),   & ! surface friction velocity
+                            gz(klp2,klev), & ! geopotential
+                            s(klon,klev),  & ! dry static energy
+                            coriol           ! corliolis pararameter
+
+    INTEGER, INTENT (OUT) :: i_hpbl(klon) ! index for layer spanning pbl depth
+
+    INTEGER :: jl, jk
+    REAL    :: h_dyn,  & ! Ekman layer depth
+               f_cor     ! Effective coriolis parameter
+
+
+    DO jl = kidia, kfdia
+
+       f_cor = MAX( ABS(coriol), f_min )
+       h_dyn = MIN( gz(jl,1)/g, c_dyn*ustar(jl)/f_cor)
+
+       jk = klev - 1
+       DO WHILE ( s(jl,jk) <= s(jl,klev) .AND. jk > 1)
+          jk = jk - 1
+       END DO
+
+       jk = MIN( jk,klev-koff )
+       DO WHILE ( gz(jl,jk)/g < h_dyn .AND. jk > 1)
+          jk = jk - 1
+       END DO
+       IF (jk < 10) WRITE (0,*) 'pbl_height: ', jk, h_dyn
+       i_hpbl(jl) = jk
+
+    END DO
+
+    RETURN
+  END SUBROUTINE pbl_height
+
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE stability(   klp2,   klev, klevp1,   klon,  kidia,  kfdia,     jk, &
+                            gz,    phl,      u,      v,     qv,     ql,     tk, &
+                            cf,     qs,     th,    thv,    thl,     tv,     db, &
+                            sh,     ri)
+
+    ! Description:
+    !
+    ! Computes stability parameters at model interfaces
+    !
+    ! Authors:
+    !
+    ! B. Stevens, MPI/UCLA,  rewrite/modularized,  05.1999
+    !
+
+    USE mo_constants,  ONLY: g,    & ! gravitational acceleration
+                             als,  & ! latent heat of sublimation
+                             alv,  & ! latent heat of evaporation
+                             cpd,  & ! isobaric specific heat (dry air)
+                             rd,   & ! gas constant for dry air
+                             rv,   & ! gas constant for water vapor
+                             tmelt   ! temperature of fusion of ice
+
+    IMPLICIT NONE
+
+    INTEGER, INTENT (IN) :: klp2, klev, klevp1, klon, kidia, kfdia, jk
+
+    REAL, INTENT (IN)    :: gz(klp2,klev),   & ! geopotential (grav*z)
+                            phl(klp2,klevp1),& ! half level pressure
+                            u(klp2,klev),    & ! zonal wind speed
+                            v(klp2,klev),    & ! meridional wind speed
+                            qv(klp2,klev),   & ! humidity
+                            ql(klp2,klev),   & ! cloud water
+                            tk(klp2,klev),   & ! temperature of air 
+                            cf(klp2,klev),   & ! cloud fraction
+                            qs(klon,klev),   & ! saturation mixing ratio
+                            th(klon,klev),   & ! potential temperature
+                            thv(klon,klev),  & ! virtual pot. temperature
+                            thl(klon,klev)     ! liquid wtr pot. temperature
+
+    REAL, INTENT (OUT)   :: db(klon),        & ! buoyancy gradient
+                            tv(klon),        & ! centered virtual temperature
+                            sh(klon),        & ! sqrd wnd speed gradient
+                            ri(klon)           ! gradient richardson number
+
+    REAL    ::   dz,  qs0,  th0,  ql0,  qv0,   lh, lhp1,   cf0,   lct,    lrt, &
+                 c1,   c2,   x1,   x2,   zz,  alp,  bet, rvord, dthldz, dqtdz
+
+    INTEGER :: jl
+
+
+    rvord = rv/rd 
+
+    DO jl = kidia, kfdia
+       dz   = (gz(jl,jk)-gz(jl,jk+1))/g
+       !
+       ! use points interpolated to layer edges for base state values where c1 and
+       ! c2 are mass weighting functions
+       !
+       c1     = (phl(jl,jk)-phl(jl,jk+1))/(phl(jl,jk)-phl(jl,jk+2))
+       c2     = (phl(jl,jk+1)-phl(jl,jk+2))/(phl(jl,jk)-phl(jl,jk+2))
+       qs0    = c1*qs(jl,jk)  + c2*qs(jl,jk+1)
+       ql0    = c1*ql(jl,jk)  + c2*ql(jl,jk+1)
+       qv0    = c1*qv(jl,jk)  + c2*qv(jl,jk+1)
+       th0    = c1*th(jl,jk)  + c2*th(jl,jk+1)
+       cf0    = c1*cf(jl,jk)  + c2*cf(jl,jk+1)
+       tv(jl) = c1*thv(jl,jk) + c2*thv(jl,jk+1)
+       !
+       ! get appropriate values of thermodynamic constants
+       !
+       lh   = MERGE(alv,als, tk(jl,jk) >= tmelt)                 ! Latent Heat
+       lhp1 = MERGE(alv,als, tk(jl,jk+1) >= tmelt)               ! Latent Heat
+       zz   = (c1*lh + c2*lhp1)/(c1*tk(jl,jk)  + c2*tk(jl,jk+1)) ! L/Tk
+       lct  = zz/cpd                                             ! L/(Cp*Tk)
+       lrt  = zz/rd                                              ! L/(Rd*Tk)
+       !
+       ! calculate buoyancy in saturated parcels
+       !
+       x1  = 1.0 + (rvord - 1.0)*(ql0 + qv0)
+       x2  = x1 - lrt*qs0*(lct*x1 - rvord)/(rvord + lrt*lct*qs0)
+       alp = cf0*x2 + (1.0 - cf0)*x1
+       bet = cf0*(lct*x2 - 1.0) + (1.0 - cf0)*(rvord - 1.0)
+
+       dthldz = (thl(jl,jk)-thl(jl,jk+1))/dz
+       dqtdz  = ((qv(jl,jk)+ql(jl,jk)) - (qv(jl,jk+1)+ql(jl,jk+1)))/dz
+       db(jl) = (alp*dthldz + bet*th0*dqtdz) * (g/tv(jl))
+       !
+       ! calculate shear and gradient richardson number
+       !
+       zz     = (u(jl,jk)-u(jl,jk+1))**2 + (v(jl,jk)-v(jl,jk+1))**2
+       sh(jl) = MAX(wsd_min,zz)*(1./dz)**2
+
+       ri(jl) = db(jl)/sh(jl)
+    END DO
+
+    RETURN
+  END SUBROUTINE stability
+
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE austausch(   klp2,   klev,   klon,  kidia,  kfdia,  ihpbl,     jk, &
+                         nstep, nstart,     gz,     ri,     sh,     db, deltat, &
+                         tke_p,  tke_s,     ah,     am)
+
+    ! Description:
+    !
+    ! Computes exchange coefficients (eddy diffusivities/viscosities) using
+    ! the prognostic TKE model:  K = sqrt(e) * l * f(ri)  Because the exchange
+    ! coefficients are used in the mechanical and buoyant sources of TKE the
+    ! TKE equation in the absence of transport is solved here (using analytic
+    ! solutions) and the new values of TKE (not yet adjusted for diffusive 
+    ! transport) are derived.
+    !
+    ! Authors:
+    !
+    ! B. Stevens, MPI/UCLA,  rewrite/modularized,  05.1999
+    !
+
+    USE mo_physc2,     ONLY: cb,   & ! neutral stability parameter
+                             cc,   & ! unstable stability parameter
+                             cd,   & ! stable stability parameter
+                             clam, & !asymptotic mixing length for moment.
+                             ckap    ! von Karmans constant
+
+    USE mo_constants,  ONLY: g       ! gravitational acceleration
+
+    IMPLICIT NONE
+
+    REAL, PARAMETER :: zh1 = 2.22,  & !
+                       zh2 = 0.22,  & !
+                       zm1 = 1.24,  & !
+                       zm2 = 2.37,  & !
+                       zm4 = 3.69,  & !
+                       c1  = 15.,   & !
+                       c3  = 1./3., & !
+                       z_min = 30.    !
+
+    INTEGER, INTENT (IN)  :: klp2, klev, klon, kidia, kfdia, jk, ihpbl(klon), &
+                             nstep, nstart
+
+    REAL, INTENT (IN)     :: gz(klp2,klev), & ! geopotential (grav*z)
+                             ri(klon),      & ! Richardson number
+                             sh(klon),      & ! Shear
+                             db(klon),      & ! Buoyancy
+                             deltat           ! Time step * 2
+
+    REAL, INTENT (INOUT)  :: tke_p(klp2,klev)     ! tke at past time level
+
+    REAL, INTENT (OUT)    :: ah(klon),        & ! austausch coefficient mom.
+                             am(klon),        & ! austausch coefficient heat
+                             tke_s(klon,klev)   ! tke star (partial update)
+
+    INTEGER :: jl
+    REAL    :: ch, cm, zm, zmix, zlam, fri_h, fri_m, xprd, xdss, zz, z1, z2
+
+
+    ch = zh1*zh2*SQRT(2.)
+    cm = ch*zm1*zm2/zm4
+
+    DO jl = kidia, kfdia
+       zm = (gz(jl,jk) + gz(jl,jk+1))*.5/g
+       !
+       ! Get mixing lengths
+       !
+       IF (jk >= ihpbl(jl)) THEN
+          zmix = ckap*zm / (1. + zm*ckap/clam)
+       ELSE
+          zlam = z_min + (clam-z_min)*EXP(1. - gz(jl,jk)/gz(jl,ihpbl(jl)))
+          zmix = ckap*zm / (1. + zm*ckap/zlam)
+       END IF
+       !
+       ! Get stability functions f(Ri) for heat and momentum
+       !
+       IF (ri(jl) < 0.) THEN
+          z1  = gz(jl,jk)  /g
+          z2  = gz(jl,jk+1)/g
+          zz  = SQRT( (ABS(ri(jl))/z2) * (((z1/z2)**c3 - 1.)/(z1-z2))**3 )
+          zz  = 1./(1. + 3.*cb*cc*zz*zmix**2)
+          fri_h = ch*(1. - 3.*cb*ri(jl)*zz)
+          fri_m = cm*(1. - 2.*cb*ri(jl)*zz)
+       ELSE
+          fri_h = ch/(1. + 2.*cb*ri(jl)*SQRT(1.+ri(jl)))
+          fri_m = cm/(1. + 2.*cb*ri(jl)/SQRT(1.+cd*ri(jl)))
+       END IF
+       !
+       ! Solve for TKE
+       !
+       xprd = sh(jl)*zmix*fri_m - db(jl)*zmix*fri_h
+       xdss = c1*zmix/deltat
+       zz   = 1. + (xprd*deltat+SQRT(tke_p(jl,jk))*2.)/xdss
+       IF (zz <= 1.) THEN
+          tke_s(jl,jk) = tke_min
+       ELSE
+          tke_s(jl,jk) = MAX(tke_min,(xdss*(SQRT(zz) - 1.))**2)
+       END IF
+       !
+       ! Get exchange (austausch) coefficients for heat and momentum
+       !
+       IF (nstep == nstart) tke_p(jl,jk) = tke_s(jl,jk)
+       zz = SQRT(MAX(tke_min,tke_p(jl,jk)))
+       ah(jl) = zmix * fri_h * zz
+       am(jl) = zmix * fri_m * zz
+    END DO
+
+    RETURN
+  END SUBROUTINE austausch
+
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE tke_srf(   klp2,   klev,   klon,  kidia,  kfdia,  ihpbl, &
+                          gz,   thvs,    thv,  ustar,   xcfh,    xws, tke_s  )
+
+    ! Description:
+    !
+    ! Computes value of TKE at lowest level based on similarity theory
+    !
+    ! Authors:
+    !
+    ! B. Stevens, MPI/UCLA,  rewrite/modularized,  05.1999
+    !
+
+    USE mo_physc2,     ONLY:  ckap         ! von Karmans constant
+    USE mo_constants,  ONLY:  g            ! gravitational acceleration
+
+    IMPLICIT NONE
+
+    REAL, PARAMETER :: c1 = 3.75,       & ! ustar proportionality factor
+                       c2 = 0.20,       & ! wstar proportionality factor
+                       gz_max = 50000., & ! Maximum geopotential at pbl top
+                       zl_max = 3.*c1     ! maximum value of (zi/L)**2/3
+
+    INTEGER, INTENT (IN) :: klp2, klev, klon, kidia, kfdia, ihpbl(klon)
+
+    REAL, INTENT (IN)    :: gz(klp2,klev),     & ! Geopotential (grav*z)
+                            thv(klon,klev),    & ! virtual potential temp.
+                            thvs(klon),        & ! surface virtual theta
+                            xws(klon),         & ! squared (klev) wind speed 
+                            ustar(klon),       & ! friction velocity scale
+                            xcfh(klon)           ! heat exchange coefficient
+
+    REAL, INTENT (OUT)   :: tke_s(klon,klev)     ! tke star (partial update)
+
+    INTEGER :: jl
+    REAL    :: zz, gz_habl, wstar, lmo, stbf
+
+
+    DO jl = kidia, kfdia
+       tke_s(jl,klev) = c1*ustar(jl)**2
+       zz = MAX(0.,(thvs(jl)-thv(jl,klev)))*SQRT(xws(jl)) &
+            /(0.5*(thv(jl,klev)+thvs(jl)))
+       !
+       ! If the PBL is sufficiently convective adjust for contribution due
+       ! to wstar and modifications to ustar derived from stability
+       !
+       IF (zz > 1.e-10) THEN
+          gz_habl = MIN(gz_max,gz(jl,ihpbl(jl)))
+          wstar   = (zz*xcfh(jl)*gz_habl)**(1./3.)
+          lmo     = (gz_habl/(ckap*g)) * (ustar(jl)/wstar)**3
+          stbf    = MIN( zl_max,(gz(jl,klev)/(g*lmo))**(2./3.) )
+          tke_s(jl,klev) = tke_s(jl,klev) + stbf*(ustar(jl)**2) + c2*(wstar**2)
+       END IF
+       tke_s(jl,klev) = MAX(tke_min,tke_s(jl,klev))
+    END DO
+
+    RETURN
+  END SUBROUTINE tke_srf
+
+  !-----------------------------------------------------------------------------
+
+  SUBROUTINE tridiff (klon,klev,k1,k2,i1,i2,sval,src,ak,dk,ck,bk)
+
+    ! Description:
+    !
+    ! standard tri-diagonal solver for (k2 - k1 + 1 < klon) columns based on the
+    ! LU decomposition of the equation 
+    !
+    !     a(k)*x(k-1)+d(k)*x(k)+c(k)*x(k+1) = b(k)
+    !
+    ! such that
+    !
+    !         |  1   0   0   0   0 ... 0 | |u11 a12  0   0   0   0  ...  0  |
+    !     L = | l21  1   0   0   0 ... 0 | | 0  u22 a23  0   0   0  ...  0  |
+    !         |  0  l32  1   0   0 ... 0 | | 0   0  u33 a34  0   0  ...  0  |
+    !         |                          | |                                |
+    !         |  0   0   0   0   0 ... 1 | | 0   0   0   0   0   0  ... unn |
+    !
+    ! where aik =c(k) (i=k-1), =a(k) i=k+1
+    !    u(1,1)   = a(1,1)
+    !    l(i,i-1) = a(i,i-1)/u(i-1,i-1)
+    !    u(i,i)   = a(i,i1)-l(i,i-1)*a(i-1,i)
+    !
+    ! and solves for x(k) = y(k)/u(k,k) - a(k,k+1)*x(k+1)/u(k,k) where
+    ! y(k) = b(k) -l(k)y(k-1)
+    !
+    ! For further reference see any text book on numerical methods.
+    !
+    ! This code is set up to accomodate an exchange coefficient across the
+    ! i2 (lower physical space, upper index space) boundary and a specified
+    ! surface value given in the sv array, or a source flux given in the src
+    ! array.  
+    !
+    ! Authors:
+    !
+    ! B. Stevens, MPI/UCLA,  rewrite/modularized,  05.1999
+    !
+
+    IMPLICIT NONE
+
+    INTEGER, INTENT (IN) :: klon,klev,k1,k2,i1,i2
+
+    REAL, INTENT (IN)    :: ak(klon,klev),  & ! lower diagonal terms
+                            dk(klon,klev),  & ! diagonal terms
+                            ck(klon,klev),  & ! upper diagonal terms
+                            sval(klon)   ,  & ! surface values
+                            src(klon)         ! surface source flux
+
+    REAL, INTENT (INOUT) :: bk(klon,klev)     ! RHS of equation, upon entry,
+    ! updated values upon exit
+
+    INTEGER :: jl,jk
+    REAL    :: x1(klon,klev),x2(klon,klev)
+
+
+    DO jl = k1, k2
+       x1(jl,i1) = ck(jl,i1)/dk(jl,i1)
+       bk(jl,i1) = bk(jl,i1)/dk(jl,i1)
+    END DO
+
+    DO jk = i1 + 1, i2
+       DO jl = k1, k2
+          x2(jl,jk) = dk(jl,jk) - ak(jl,jk)*x1(jl,jk-1)
+          x1(jl,jk) = ck(jl,jk)/x2(jl,jk)
+          bk(jl,jk) = (bk(jl,jk)-ak(jl,jk)*bk(jl,jk-1) ) /x2(jl,jk)
+       END DO
+    END DO
+    !
+    ! here enforce the lower bc's
+    !
+    jk = i2+1
+    DO jl = k1, k2
+       x2(jl,jk) = dk(jl,jk) - ak(jl,jk)*x1(jl,jk-1)
+       bk(jl,jk) = ( bk(jl,jk)-ak(jl,jk)*bk(jl,jk-1)            &
+                    -ck(jl,jk)*sval(jl) + src(jl)) /x2(jl,jk)
+    END DO
+    !
+    ! here bk = y(jk)/u(jk,jk), x1=a(jk,jk+1)/u(jk,jk)
+    !
+    DO jk = i2, i1, -1
+       DO jl = k1, k2
+          bk(jl,jk) = bk(jl,jk) - x1(jl,jk)*bk(jl,jk+1)
+       END DO
+    END DO
+
+    RETURN
+  END SUBROUTINE tridiff
+
+END MODULE m_vdiff
